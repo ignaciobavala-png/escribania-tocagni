@@ -1,59 +1,47 @@
 ---
 const contactInfo = [
-  {
-    label: 'Direccion',
-    value: 'Av. Siempreviva 742, Buenos Aires',
-  },
-  {
-    label: 'Telefono',
-    value: '+54 11 5555-1234',
-  },
-  {
-    label: 'Email',
-    value: 'info@escribaniatogcani.com',
-  },
-  {
-    label: 'Horario',
-    value: 'Lunes a Viernes de 9 a 18 hs',
-  },
+  { label: 'Direccion', value: 'Av. Siempreviva 742, Buenos Aires' },
+  { label: 'Telefono', value: '+54 11 5555-1234' },
+  { label: 'Email', value: 'info@escribaniatogcani.com' },
+  { label: 'Horario', value: 'Lunes a Viernes de 9 a 18 hs' },
 ];
 ---
 
-<footer id="contacto" class="bg-primary py-32 md:py-40 px-6">
+<footer id="contacto" class="bg-primary py-24 md:py-32 px-6">
   <div class="mx-auto max-w-7xl">
-    <div class="w-24 h-px bg-accent mb-16" />
+    <div class="w-16 h-px bg-accent mb-10" />
 
-    <div class="grid lg:grid-cols-12 gap-16 lg:gap-20">
+    <div class="grid lg:grid-cols-12 gap-12 lg:gap-16">
       <div class="lg:col-span-4">
-        <p class="text-xs tracking-[0.3em] uppercase text-white/40 mb-6 font-medium">
+        <p class="text-xs tracking-[0.3em] uppercase text-white/30 mb-5 font-medium">
           Contacto
         </p>
-        <h2 class="font-serif text-3xl md:text-4xl text-white leading-tight mb-8">
+        <h2 class="font-serif text-3xl md:text-4xl text-white leading-tight mb-6">
           Estamos para<br />ayudarte
         </h2>
-        <p class="text-white/40 text-sm leading-relaxed max-w-sm">
+        <p class="text-white/30 text-sm leading-relaxed max-w-sm">
           Consultanos sin compromiso. Respondemos tus consultas con seriedad y discrecion.
         </p>
       </div>
 
-      <div class="lg:col-span-5 lg:col-start-8">
-        <div class="space-y-10">
+      <div class="lg:col-span-4 lg:col-start-9">
+        <div class="space-y-8">
           {contactInfo.map((c) => (
             <div>
-              <p class="text-xs tracking-[0.2em] uppercase text-accent/60 mb-2 font-medium">{c.label}</p>
-              <p class="text-white/80">{c.value}</p>
+              <p class="text-xs tracking-[0.2em] uppercase text-accent/50 mb-1.5 font-medium">{c.label}</p>
+              <p class="text-white/70 text-sm">{c.value}</p>
             </div>
           ))}
         </div>
       </div>
     </div>
 
-    <div class="border-t border-white/10 mt-20 pt-8">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <p class="text-white/30 text-xs tracking-wide">
+    <div class="border-t border-white/8 mt-16 pt-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <p class="text-white/25 text-xs tracking-wide">
           &copy; {new Date().getFullYear()} Escribania Togcani. Todos los derechos reservados.
         </p>
-        <p class="text-white/20 text-xs tracking-wide">
+        <p class="text-white/15 text-xs tracking-wide">
           Matricula Profesional N° XXXX
         </p>
       </div>

@@ -3,41 +3,38 @@ import Header from './Header.astro';
 ---
 
 <section class="relative min-h-screen flex flex-col bg-primary overflow-hidden">
-  <!-- Grid pattern -->
   <div class="absolute inset-0 opacity-[0.04]" style="background-image:
-    linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px);
     background-size: 80px 80px;">
   </div>
 
-  <!-- Radial vignette -->
-  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_var(--color-primary-dark)_100%)] opacity-60" />
+  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_var(--color-primary-dark)_100%)]" opacity-60 />
 
   <div class="relative flex-1 flex flex-col">
     <Header />
 
     <div class="flex-1 flex items-center">
       <div class="mx-auto max-w-7xl px-6 w-full">
-        <div class="max-w-4xl py-20 md:py-28">
-          <!-- Thin gold rule -->
-          <div class="w-24 h-px bg-accent mb-12 md:mb-16" />
+        <div class="max-w-4xl py-16 md:py-24">
+          <div class="w-16 h-px bg-accent mb-10" />
 
-          <p class="text-white/50 text-xs md:text-sm tracking-[0.3em] uppercase mb-8 font-medium">
+          <p class="text-white/40 text-xs md:text-sm tracking-[0.3em] uppercase mb-6 font-medium">
             Escribania
           </p>
 
-          <h1 class="font-serif text-5xl sm:text-6xl md:text-8xl text-white leading-none tracking-tight mb-8">
+          <h1 class="font-serif text-5xl sm:text-6xl md:text-8xl text-white leading-none tracking-tight mb-6">
             Togcani
           </h1>
 
-          <p class="text-white/60 text-base md:text-lg max-w-lg leading-relaxed mb-12 font-light">
-            Seguridad jurica y confianza en cada acto notarial. Dos decadas de excelencia al servicio de nuestros clientes.
+          <p class="text-white/50 text-base md:text-lg max-w-lg leading-relaxed mb-10 font-light">
+            Seguridad juridica y confianza en cada acto notarial. Dos decadas de excelencia al servicio de nuestros clientes.
           </p>
 
-          <div class="flex flex-col sm:flex-row gap-4">
+          <div class="flex flex-col sm:flex-row gap-3">
             <a
               href="#servicios"
-              class="inline-flex items-center justify-center gap-3 bg-accent hover:bg-accent-light text-primary-dark font-medium px-10 py-4 text-sm tracking-widest uppercase transition-colors duration-300"
+              class="inline-flex items-center justify-center gap-3 bg-accent hover:bg-accent-light text-primary-dark font-medium px-9 py-3.5 text-sm tracking-widest uppercase transition-colors duration-300"
             >
               Nuestros servicios
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -46,7 +43,7 @@ import Header from './Header.astro';
             </a>
             <a
               href="#contacto"
-              class="inline-flex items-center justify-center gap-3 text-white border border-white/20 hover:border-white/40 font-medium px-10 py-4 text-sm tracking-widest uppercase transition-colors duration-300"
+              class="inline-flex items-center justify-center gap-3 text-white border border-white/15 hover:border-white/30 font-medium px-9 py-3.5 text-sm tracking-widest uppercase transition-colors duration-300"
             >
               Contacto
             </a>
@@ -55,24 +52,23 @@ import Header from './Header.astro';
       </div>
     </div>
 
-    <!-- Bottom values strip -->
-    <div class="border-t border-white/10">
-      <div class="mx-auto max-w-7xl px-6 py-10 md:py-14">
-        <div class="grid sm:grid-cols-3 gap-8 md:gap-0 md:divide-x divide-white/10">
-          <div class="md:pr-12 group">
-            <p class="font-serif text-3xl md:text-4xl text-accent mb-3">01</p>
-            <h3 class="text-white text-sm uppercase tracking-[0.2em] mb-2 font-medium">Confianza</h3>
-            <p class="text-white/40 text-xs leading-relaxed max-w-xs">Fe publica y transparencia en cada acto notarial que intervenimos.</p>
+    <div class="border-t border-white/8">
+      <div class="mx-auto max-w-7xl px-6 py-8 md:py-12">
+        <div class="grid sm:grid-cols-3 gap-6 md:gap-0 md:divide-x divide-white/8">
+          <div class="md:pr-10">
+            <p class="font-serif text-2xl md:text-3xl text-accent mb-2">01</p>
+            <h3 class="text-white text-xs uppercase tracking-[0.2em] mb-1.5 font-medium">Confianza</h3>
+            <p class="text-white/35 text-xs leading-relaxed max-w-xs">Fe publica y transparencia en cada acto notarial que intervenimos.</p>
           </div>
-          <div class="md:px-12 group">
-            <p class="font-serif text-3xl md:text-4xl text-accent mb-3">02</p>
-            <h3 class="text-white text-sm uppercase tracking-[0.2em] mb-2 font-medium">Excelencia</h3>
-            <p class="text-white/40 text-xs leading-relaxed max-w-xs">Rigor tecnico juridico con atencion personalizada en cada tramite.</p>
+          <div class="md:px-10">
+            <p class="font-serif text-2xl md:text-3xl text-accent mb-2">02</p>
+            <h3 class="text-white text-xs uppercase tracking-[0.2em] mb-1.5 font-medium">Excelencia</h3>
+            <p class="text-white/35 text-xs leading-relaxed max-w-xs">Rigor tecnico juridico con atencion personalizada en cada tramite.</p>
           </div>
-          <div class="md:pl-12 group">
-            <p class="font-serif text-3xl md:text-4xl text-accent mb-3">03</p>
-            <h3 class="text-white text-sm uppercase tracking-[0.2em] mb-2 font-medium">Trayectoria</h3>
-            <p class="text-white/40 text-xs leading-relaxed max-w-xs">Mas de dos decadas de experiencia y profesionalismo.</p>
+          <div class="md:pl-10">
+            <p class="font-serif text-2xl md:text-3xl text-accent mb-2">03</p>
+            <h3 class="text-white text-xs uppercase tracking-[0.2em] mb-1.5 font-medium">Trayectoria</h3>
+            <p class="text-white/35 text-xs leading-relaxed max-w-xs">Mas de dos decadas de experiencia y profesionalismo.</p>
           </div>
         </div>
       </div>

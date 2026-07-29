@@ -1,58 +1,34 @@
 ---
 const services = [
-  {
-    number: '01',
-    title: 'Certificaciones',
-    description: 'Autenticacion de firmas, documentos y copias fieles con validez legal en todo el pais.',
-  },
-  {
-    number: '02',
-    title: 'Contratos y Escrituras',
-    description: 'Redaccion y protocolizacion de contratos civiles, comerciales, locaciones y poderes.',
-  },
-  {
-    number: '03',
-    title: 'Tramites Societarios',
-    description: 'Constitucion de sociedades, modificaciones estatutarias, actas de directorio y asambleas.',
-  },
-  {
-    number: '04',
-    title: 'Compraventa',
-    description: 'Asesoramiento integral en operaciones inmobiliarias, estudios de titulo y escrituracion.',
-  },
-  {
-    number: '05',
-    title: 'Sucesiones',
-    description: 'Planificacion patrimonial, declaratorias de herederos y tramitacion de sucesiones.',
-  },
-  {
-    number: '06',
-    title: 'Asesoramiento Notarial',
-    description: 'Consultoria juridica personalizada para particulares, empresas y estudios contables.',
-  },
+  { number: '01', title: 'Certificaciones', description: 'Autenticacion de firmas, documentos y copias fieles con validez legal en todo el pais.' },
+  { number: '02', title: 'Contratos y Escrituras', description: 'Redaccion y protocolizacion de contratos civiles, comerciales, locaciones y poderes.' },
+  { number: '03', title: 'Tramites Societarios', description: 'Constitucion de sociedades, modificaciones estatutarias, actas de directorio y asambleas.' },
+  { number: '04', title: 'Compraventa', description: 'Asesoramiento integral en operaciones inmobiliarias, estudios de titulo y escrituracion.' },
+  { number: '05', title: 'Sucesiones', description: 'Planificacion patrimonial, declaratorias de herederos y tramitacion de sucesiones.' },
+  { number: '06', title: 'Asesoramiento Notarial', description: 'Consultoria juridica personalizada para particulares, empresas y estudios contables.' },
 ];
 ---
 
-<section id="servicios" class="py-32 md:py-40 px-6 bg-neutral-50">
+<section id="servicios" class="py-24 md:py-32 px-6 bg-neutral-50">
   <div class="mx-auto max-w-7xl">
-    <div class="w-24 h-px bg-accent mb-16" />
+    <div class="w-16 h-px bg-accent mb-10" />
 
-    <p class="text-xs tracking-[0.3em] uppercase text-neutral-400 mb-6 font-medium">
+    <p class="text-xs tracking-[0.3em] uppercase text-neutral-400 mb-5 font-medium">
       Servicios
     </p>
 
-    <h2 class="font-serif text-3xl md:text-4xl text-primary leading-tight mb-16 md:mb-24 max-w-xl">
+    <h2 class="font-serif text-3xl md:text-4xl text-primary leading-tight mb-12 md:mb-16 max-w-lg">
       Soluciones notariales a tu medida
     </h2>
 
-    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
       {services.map((s) => (
         <div class="group">
-          <div class="flex items-center gap-4 mb-4">
+          <div class="flex items-center gap-3 mb-3">
             <span class="font-serif text-sm text-accent tabular-nums">{s.number}</span>
             <div class="flex-1 h-px bg-neutral-200 group-hover:bg-accent/40 transition-colors duration-300" />
           </div>
-          <h3 class="font-serif text-lg text-primary mb-3">{s.title}</h3>
+          <h3 class="font-serif text-lg text-primary mb-2">{s.title}</h3>
           <p class="text-neutral-500 text-sm leading-relaxed">{s.description}</p>
         </div>
       ))}
