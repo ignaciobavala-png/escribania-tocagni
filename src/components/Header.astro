@@ -7,42 +7,43 @@ const navLinks = [
 ---
 
 <header class="absolute top-0 left-0 right-0 z-50">
-  <nav class="mx-auto max-w-6xl px-4 py-5 flex items-center justify-between">
-    <a href="/" class="font-serif text-xl md:text-2xl text-white font-semibold tracking-tight">
-      Togcani
-    </a>
+  <div class="mx-auto max-w-7xl px-6 py-6 flex items-center justify-between">
+    <div class="flex items-center gap-12">
+      <a href="/" class="font-serif text-xl text-white font-semibold tracking-tight">
+        Togcani
+      </a>
 
-    <div class="hidden md:flex items-center gap-8">
-      {navLinks.map((link) => (
-        <a
-          href={link.href}
-          class="text-white/70 hover:text-white transition-colors text-sm font-medium"
-        >
-          {link.label}
-        </a>
-      ))}
+      <nav class="hidden lg:flex items-center gap-8">
+        {navLinks.map((link) => (
+          <a
+            href={link.href}
+            class="text-white/60 hover:text-white transition-colors text-xs font-medium tracking-widest uppercase"
+          >
+            {link.label}
+          </a>
+        ))}
+      </nav>
     </div>
 
-    <div class="hidden md:flex items-center gap-6">
-      <a href="tel:+541155551234" class="text-white/80 hover:text-white text-sm transition-colors">
+    <div class="hidden lg:flex items-center gap-8">
+      <a href="tel:+541155551234" class="text-white/60 hover:text-white text-xs tracking-wide transition-colors">
         +54 11 5555-1234
       </a>
       <a
         href="#contacto"
-        class="bg-accent hover:bg-accent-light text-primary-dark font-medium px-5 py-2.5 rounded-lg text-sm transition-colors duration-200"
+        class="text-white border border-accent/40 hover:border-accent hover:text-accent font-medium px-6 py-2.5 text-xs tracking-widest uppercase transition-colors duration-300"
       >
         Consultar
       </a>
     </div>
 
     <button
-      class="md:hidden text-white p-1"
+      class="lg:hidden text-white p-1"
       aria-label="Abrir menu"
-      id="mobile-menu-btn"
     >
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" />
       </svg>
     </button>
-  </nav>
+  </div>
 </header>

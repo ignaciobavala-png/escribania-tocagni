@@ -20,3 +20,12 @@
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-sans: 'Inter', system-ui, sans-serif;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-neutral-700);
+}
