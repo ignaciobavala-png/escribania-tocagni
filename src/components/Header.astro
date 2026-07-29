@@ -1,5 +1,6 @@
 ---
 const navLinks = [
+  { href: '#quienes-somos', label: 'Quienes Somos' },
   { href: '#servicios', label: 'Servicios' },
   { href: '#contacto', label: 'Contacto' },
 ];
@@ -7,7 +8,7 @@ const navLinks = [
 
 <header class="absolute top-0 left-0 right-0 z-50">
   <nav class="mx-auto max-w-6xl px-4 py-5 flex items-center justify-between">
-    <a href="/" class="font-serif text-xl text-white font-semibold tracking-tight">
+    <a href="/" class="font-serif text-xl md:text-2xl text-white font-semibold tracking-tight">
       Togcani
     </a>
 
@@ -22,12 +23,17 @@ const navLinks = [
       ))}
     </div>
 
-    <a
-      href="#contacto"
-      class="hidden md:inline-flex bg-accent hover:bg-accent-light text-primary-dark font-medium px-5 py-2.5 rounded-lg text-sm transition-colors duration-200"
-    >
-      Consultar
-    </a>
+    <div class="hidden md:flex items-center gap-6">
+      <a href="tel:+541155551234" class="text-white/80 hover:text-white text-sm transition-colors">
+        +54 11 5555-1234
+      </a>
+      <a
+        href="#contacto"
+        class="bg-accent hover:bg-accent-light text-primary-dark font-medium px-5 py-2.5 rounded-lg text-sm transition-colors duration-200"
+      >
+        Consultar
+      </a>
+    </div>
 
     <button
       class="md:hidden text-white p-1"
