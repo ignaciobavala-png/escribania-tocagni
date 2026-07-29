@@ -1,0 +1,13 @@
+node_modules
+wrangler.jsonc
+.assetsignore
+.git
+.wrangler
+.claude
+AGENTS.md
+package.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+CLAUDE.md
+src
+.vscode

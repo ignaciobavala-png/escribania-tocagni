@@ -1,0 +1,72 @@
+---
+const services = [
+  {
+    title: 'Certificaciones y Autenticaciones',
+    description: 'Autenticacion de firmas, documentos y copias fieles con validez legal en todo el pais.',
+    icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+  },
+  {
+    title: 'Contratos y Escrituras',
+    description: 'Redaccion y protocolizacion de contratos civiles, comerciales, locaciones y poderes.',
+    icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+  },
+  {
+    title: 'Tramites Societarios',
+    description: 'Constitucion de sociedades, modificaciones estatutarias, actas de directorio y asambleas.',
+    icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+  },
+  {
+    title: 'Compraventa de Inmuebles',
+    description: 'Asesoramiento integral en operaciones inmobiliarias, estudios de titulo y escrituracion.',
+    icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+  },
+  {
+    title: 'Sucesiones y Testamentos',
+    description: 'Planificacion patrimonial, declaratorias de herederos y tramitacion de sucesiones.',
+    icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+  },
+  {
+    title: 'Asesoramiento Notarial',
+    description: 'Consultoria juridica personalizada para particulares, empresas y estudios contables.',
+    icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z',
+  },
+];
+---
+
+<section id="servicios" class="py-24 px-4">
+  <div class="mx-auto max-w-6xl">
+    <div class="text-center mb-16">
+      <span class="text-accent text-sm font-medium tracking-wider uppercase">Nuestros Servicios</span>
+      <h2 class="font-serif text-3xl md:text-4xl text-primary mt-3 mb-4">
+        Soluciones notariales a tu medida
+      </h2>
+      <p class="text-neutral-500 max-w-2xl mx-auto leading-relaxed">
+        Mas de dos decadas de experiencia nos respaldan. Cada tramite y documento recibe atencion personalizada con el rigor que la ley exige.
+      </p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {
+        services.map((s) => (
+          <div
+            class="bg-white rounded-xl border border-neutral-200 p-8 hover:border-accent/30 hover:shadow-lg transition-all duration-300 group"
+          >
+            <div class="w-12 h-12 rounded-lg bg-primary/5 flex items-center justify-center mb-5 group-hover:bg-primary/10 transition-colors">
+              <svg
+                class="w-6 h-6 text-primary"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d={s.icon} />
+              </svg>
+            </div>
+            <h3 class="font-serif text-lg text-primary mb-3">{s.title}</h3>
+            <p class="text-neutral-500 text-sm leading-relaxed">{s.description}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

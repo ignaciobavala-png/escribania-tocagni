@@ -1,22 +1,82 @@
-## Development
+# Escribania Togcani — Landing Page
 
-When starting the dev server, use background mode:
+## Cliente
+
+Escribania (notaria) con mas de 20 anos de trayectoria en Buenos Aires. Servicios:
+certificaciones, contratos, tramites societarios, compraventa de inmuebles,
+sucesiones, asesoramiento notarial.
+
+## Stack
+
+| Capa | Tecnologia |
+|------|------------|
+| Framework | Astro 7 (SSG, output: "static") |
+| Estilos | Tailwind CSS v4 (Vite plugin `@tailwindcss/vite`) |
+| Deploy | Cloudflare Workers Static Assets (Wrangler v4) |
+| Package | pnpm |
+| Lenguaje | TypeScript strict |
+
+### Dependencias instaladas (sin usar aun)
+
+- `@astrojs/react` + `react` / `react-dom` — para el chatbot futuro
+- `@astrojs/cloudflare` — para SSR/API routes cuando se agregue el chatbot
+
+**No removerlas**, son necesarias para la fase 2 (chatbot con Groq).
+
+## Deploy
+
+```bash
+pnpm run build          # genera dist/
+pnpm exec wrangler deploy # sube a Cloudflare Workers
+```
+
+URL: `https://escribania-togcani.ethoslogliberty.workers.dev`
+
+Cuenta Cloudflare: `ethoslogliberty@gmail.com` (Neo Nach).
+
+## Tema visual
+
+Paleta definida en `src/styles/global.css` via `@theme`:
+
+| Token | Color | Uso |
+|-------|-------|-----|
+| `--color-primary` | #1e3a5f (navy) | Fondo hero, headings, iconos |
+| `--color-accent` | #c9a84c (dorado) | Botones CTA, badges, detalles |
+| `--color-neutral-*` | escala 50-900 | Fondos, texto, bordes |
+
+Fuentes: Playfair Display (serif, headings) + Inter (sans, cuerpo).
+
+## Estructura
 
 ```
-astro dev --background
+src/
+├── components/
+│   ├── Header.astro       → navegacion sticky sobre el hero
+│   ├── Hero.astro         → seccion principal, titulo, CTA
+│   ├── Servicios.astro    → grilla de 6 servicios (cards)
+│   └── Contacto.astro     → datos de contacto + footer
+├── layouts/Layout.astro   → base HTML, meta tags, Google Fonts
+├── pages/index.astro      → unica pagina (landing single-page)
+└── styles/global.css      → Tailwind v4 + @theme tokens
 ```
 
-Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
+## Fase 2 — Chatbot con Groq (pendiente)
 
-## Documentation
+Cuando se implemente el chatbot:
 
-Full documentation: https://docs.astro.build
+1. Re-agregar `@astrojs/react` al `astro.config.mjs` (ya esta instalado)
+2. Re-agregar `@astrojs/cloudflare` al `astro.config.mjs` (output: "server")
+3. Crear API endpoint para el chat (Worker handler o Astro API route)
+4. Crear componente React `ChatWidget.tsx` con `useChat` de AI SDK v5
+5. Agregar env secret: `wrangler secret put GROQ_API_KEY`
 
-Consult these guides before working on related tasks:
+Referencia: skill `ai-sdk-chatbot-grounded` en brain-data.
 
-- [Adding pages, dynamic routes, or middleware](https://docs.astro.build/en/guides/routing/)
-- [Working with Astro components](https://docs.astro.build/en/basics/astro-components/)
-- [Using React, Vue, Svelte, or other framework components](https://docs.astro.build/en/guides/framework-components/)
-- [Adding or managing content](https://docs.astro.build/en/guides/content-collections/)
-- [Adding styles or using Tailwind](https://docs.astro.build/en/guides/styling/)
-- [Supporting multiple languages](https://docs.astro.build/en/guides/internationalization/)
+## Desarrollo
+
+```bash
+pnpm dev --background   # dev server en background
+pnpm dev status         # verificar estado
+pnpm dev logs           # ver logs
+pnpm dev stop           # detener
+```
