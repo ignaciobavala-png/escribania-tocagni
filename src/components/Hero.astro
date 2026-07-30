@@ -2,7 +2,7 @@
 import Header from './Header.astro';
 ---
 
-<section class="relative min-h-screen flex flex-col bg-primary overflow-hidden">
+<section class="relative min-h-[76vh] md:min-h-[80vh] flex flex-col bg-primary overflow-hidden">
   <div class="absolute inset-0 opacity-[0.04]" style="background-image:
     linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px);
@@ -16,10 +16,10 @@ import Header from './Header.astro';
 
     <div class="flex-1 flex items-center">
       <div class="mx-auto max-w-7xl px-6 w-full">
-        <div class="max-w-4xl py-16 md:py-24 mx-auto text-center">
+        <div class="max-w-4xl py-12 md:py-16 mx-auto text-center">
           <div class="w-16 h-px bg-accent mb-10 mx-auto" />
 
-          <p class="text-white/40 text-xs md:text-sm tracking-[0.3em] uppercase mb-6 font-medium">
+          <p class="text-white/40 text-sm md:text-base tracking-[0.3em] uppercase mb-6 font-medium">
             Escribania
           </p>
 
@@ -27,14 +27,14 @@ import Header from './Header.astro';
             Togcani
           </h1>
 
-          <p class="text-white/50 text-base md:text-lg max-w-xl mx-auto leading-relaxed mb-10 font-light">
+          <p class="text-white/50 text-lg md:text-xl max-w-xl mx-auto leading-relaxed mb-10 font-light">
             Seguridad juridica y confianza en cada acto notarial. Dos decadas de excelencia al servicio de nuestros clientes.
           </p>
 
           <div class="flex flex-col sm:flex-row gap-3 justify-center">
             <a
               href="#servicios"
-              class="inline-flex items-center justify-center gap-3 bg-accent hover:bg-accent-light text-primary-dark font-medium px-9 py-3.5 text-sm tracking-widest uppercase transition-colors duration-300"
+              class="inline-flex items-center justify-center gap-3 bg-accent hover:bg-accent-light text-primary-dark font-medium px-9 py-4 text-base tracking-widest uppercase transition-colors duration-300"
             >
               Nuestros servicios
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -43,7 +43,7 @@ import Header from './Header.astro';
             </a>
             <a
               href="#contacto"
-              class="inline-flex items-center justify-center gap-3 text-white border border-white/15 hover:border-white/30 font-medium px-9 py-3.5 text-sm tracking-widest uppercase transition-colors duration-300"
+              class="inline-flex items-center justify-center gap-3 text-white border border-white/15 hover:border-white/30 font-medium px-9 py-4 text-base tracking-widest uppercase transition-colors duration-300"
             >
               Contacto
             </a>
@@ -52,26 +52,5 @@ import Header from './Header.astro';
       </div>
     </div>
 
-    <div class="border-t border-white/8">
-      <div class="mx-auto max-w-7xl px-6 py-8 md:py-12">
-        <div class="grid sm:grid-cols-3 gap-6 md:gap-0 md:divide-x divide-white/8">
-          <div class="md:pr-10">
-            <p class="font-serif text-2xl md:text-3xl text-accent mb-2">01</p>
-            <h3 class="text-white text-xs uppercase tracking-[0.2em] mb-1.5 font-medium">Confianza</h3>
-            <p class="text-white/35 text-xs leading-relaxed max-w-xs">Fe publica y transparencia en cada acto notarial que intervenimos.</p>
-          </div>
-          <div class="md:px-10">
-            <p class="font-serif text-2xl md:text-3xl text-accent mb-2">02</p>
-            <h3 class="text-white text-xs uppercase tracking-[0.2em] mb-1.5 font-medium">Excelencia</h3>
-            <p class="text-white/35 text-xs leading-relaxed max-w-xs">Rigor tecnico juridico con atencion personalizada en cada tramite.</p>
-          </div>
-          <div class="md:pl-10">
-            <p class="font-serif text-2xl md:text-3xl text-accent mb-2">03</p>
-            <h3 class="text-white text-xs uppercase tracking-[0.2em] mb-1.5 font-medium">Trayectoria</h3>
-            <p class="text-white/35 text-xs leading-relaxed max-w-xs">Mas de dos decadas de experiencia y profesionalismo.</p>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </section>

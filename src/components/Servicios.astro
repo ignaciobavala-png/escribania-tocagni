@@ -9,29 +9,146 @@ const services = [
 ];
 ---
 
-<section id="servicios" class="py-24 md:py-32 px-6 bg-neutral-50">
+<section id="servicios" class="py-16 md:py-20 px-6 bg-neutral-50">
   <div class="mx-auto max-w-7xl">
     <div class="w-16 h-px bg-accent mb-10" />
 
-    <p class="text-xs tracking-[0.3em] uppercase text-neutral-400 mb-5 font-medium">
+    <p class="text-sm tracking-[0.3em] uppercase text-neutral-400 mb-5 font-medium">
       Servicios
     </p>
 
-    <h2 class="font-serif text-3xl md:text-4xl text-primary leading-tight mb-12 md:mb-16 max-w-lg">
+    <h2 class="font-serif text-4xl md:text-5xl text-primary leading-tight mb-10 md:mb-12 max-w-lg">
       Soluciones notariales a tu medida
     </h2>
 
-    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10">
       {services.map((s) => (
-        <div class="group">
-          <div class="flex items-center gap-3 mb-3">
-            <span class="font-serif text-sm text-accent tabular-nums">{s.number}</span>
-            <div class="flex-1 h-px bg-neutral-200 group-hover:bg-accent/40 transition-colors duration-300" />
+        <article class="service relative px-5 py-6 -mx-5">
+          <span class="service-rule absolute left-0 top-0 h-px bg-accent" />
+
+          <div class="flex items-center gap-3 mb-4">
+            <span class="service-num font-serif text-lg text-accent tabular-nums">
+              {s.number}
+            </span>
+            <span class="service-line flex-1 h-px bg-neutral-200" />
           </div>
-          <h3 class="font-serif text-lg text-primary mb-2">{s.title}</h3>
-          <p class="text-neutral-500 text-sm leading-relaxed">{s.description}</p>
-        </div>
+
+          <h3 class="service-title font-serif text-[1.375rem] md:text-2xl text-primary leading-snug mb-2.5">
+            {s.title}
+          </h3>
+
+          <p class="service-desc text-neutral-500 text-base leading-relaxed">
+            {s.description}
+          </p>
+        </article>
       ))}
     </div>
   </div>
 </section>
+
+<style>
+  .service {
+    transition:
+      transform 500ms ease-out,
+      background-color 500ms ease-out,
+      box-shadow 500ms ease-out;
+  }
+  .service-rule {
+    width: 0;
+    transition: width 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .service-num {
+    transition: letter-spacing 500ms ease-out;
+  }
+  .service-line {
+    transition: background-color 500ms ease-out;
+  }
+  .service-title {
+    transition: transform 500ms ease-out;
+  }
+  .service-desc {
+    transition: color 500ms ease-out;
+  }
+
+  /* --- Con mouse: el destaque se dispara al pasar por encima --- */
+  @media (hover: hover) and (pointer: fine) {
+    .service:hover,
+    .service:focus-within {
+      transform: translateY(-4px);
+      background-color: #fff;
+      box-shadow: 0 18px 50px -24px rgba(26, 41, 64, 0.28);
+    }
+    .service:hover .service-rule,
+    .service:focus-within .service-rule {
+      width: 100%;
+    }
+    .service:hover .service-num {
+      letter-spacing: 0.15em;
+    }
+    .service:hover .service-line {
+      background-color: rgba(184, 148, 76, 0.35);
+    }
+    .service:hover .service-title {
+      transform: translateX(4px);
+    }
+    .service:hover .service-desc {
+      color: var(--color-neutral-600);
+    }
+  }
+
+  /* --- Sin mouse (touch): no hay hover que disparar, asi que el destaque
+         se aplica solo. Donde el navegador soporta animaciones ligadas al
+         scroll, cada tarjeta se revela al entrar en pantalla. --- */
+  @media (hover: none) {
+    .service {
+      background-color: #fff;
+      box-shadow: 0 14px 40px -28px rgba(26, 41, 64, 0.25);
+    }
+    .service-rule {
+      width: 100%;
+    }
+
+    @supports (animation-timeline: view()) {
+      .service {
+        animation: card-in linear both;
+        animation-timeline: view();
+        animation-range: entry 5% entry 55%;
+      }
+      .service-rule {
+        animation: rule-in linear both;
+        animation-timeline: view();
+        animation-range: entry 15% entry 70%;
+      }
+    }
+  }
+
+  @keyframes card-in {
+    from {
+      opacity: 0.5;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes rule-in {
+    from {
+      width: 0;
+    }
+    to {
+      width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .service,
+    .service *,
+    .service-rule {
+      animation: none !important;
+      transition-duration: 1ms !important;
+      transform: none !important;
+    }
+  }
+</style>

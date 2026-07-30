@@ -19,6 +19,8 @@
   --color-neutral-900: #1a1714;
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-sans: 'Inter', system-ui, sans-serif;
+  /* Capital romana inscripcional — solo para la firma de la escribana */
+  --font-roman: 'Cinzel', 'Trajan Pro', Georgia, serif;
 }
 
 html {

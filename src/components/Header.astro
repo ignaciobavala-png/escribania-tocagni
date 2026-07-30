@@ -7,9 +7,9 @@ const navLinks = [
 ---
 
 <header class="absolute top-0 left-0 right-0 z-50">
-  <div class="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between">
+  <div class="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between gap-4">
     <div class="flex items-center gap-10">
-      <a href="/" class="font-serif text-lg text-white font-semibold tracking-tight">
+      <a href="/" class="font-serif text-xl text-white font-semibold tracking-tight">
         Togcani
       </a>
 
@@ -17,7 +17,7 @@ const navLinks = [
         {navLinks.map((link) => (
           <a
             href={link.href}
-            class="text-white/50 hover:text-white/80 transition-colors text-xs font-medium tracking-widest uppercase"
+            class="text-white/50 hover:text-white/80 transition-colors text-sm font-medium tracking-widest uppercase"
           >
             {link.label}
           </a>
@@ -25,25 +25,70 @@ const navLinks = [
       </nav>
     </div>
 
-    <div class="hidden lg:flex items-center gap-6">
-      <a href="tel:+541155551234" class="text-white/50 hover:text-white/80 text-xs tracking-wide transition-colors">
+    <div class="flex items-center gap-4 lg:gap-6">
+      <!-- Telefono: siempre visible, es la accion principal en movil -->
+      <a
+        href="tel:+541155551234"
+        class="text-white/60 hover:text-white/90 text-sm tracking-wide transition-colors whitespace-nowrap"
+      >
         +54 11 5555-1234
       </a>
+
       <a
         href="#contacto"
-        class="text-white border border-accent/30 hover:border-accent/60 hover:text-accent font-medium px-5 py-2 text-xs tracking-widest uppercase transition-colors duration-300"
+        class="hidden sm:inline-flex text-white border border-accent/30 hover:border-accent/60 hover:text-accent font-medium px-5 py-2 text-sm tracking-widest uppercase transition-colors duration-300"
       >
         Consultar
       </a>
-    </div>
 
-    <button
-      class="lg:hidden text-white p-1"
-      aria-label="Abrir menu"
-    >
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-        <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    </button>
+      <!-- Menu movil sin JS: <details> nativo -->
+      <details class="menu lg:hidden">
+        <summary class="text-white p-1 cursor-pointer" aria-label="Abrir menu">
+          <svg class="menu-open w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <svg class="menu-close w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </summary>
+
+        <nav class="absolute left-0 right-0 top-full bg-primary/95 backdrop-blur-sm border-y border-white/10 px-6 py-2">
+          {navLinks.map((link) => (
+            <a
+              href={link.href}
+              class="block py-3.5 text-white/70 text-sm font-medium tracking-widest uppercase border-b border-white/8 last:border-0"
+            >
+              {link.label}
+            </a>
+          ))}
+          <a
+            href="#contacto"
+            class="sm:hidden block mt-3 mb-4 text-center text-white border border-accent/30 px-5 py-3 text-sm tracking-widest uppercase"
+          >
+            Consultar
+          </a>
+        </nav>
+      </details>
+    </div>
   </div>
 </header>
+
+<style>
+  /* Oculta el triangulo nativo del summary en todos los motores */
+  .menu > summary {
+    list-style: none;
+  }
+  .menu > summary::-webkit-details-marker,
+  .menu > summary::marker {
+    display: none;
+  }
+
+  /* Alterna hamburguesa / cruz segun el estado del details */
+  .menu > summary .menu-close,
+  .menu[open] > summary .menu-open {
+    display: none;
+  }
+  .menu[open] > summary .menu-close {
+    display: block;
+  }
+</style>
