@@ -11,7 +11,7 @@ const contactInfo = [
   <div class="mx-auto max-w-7xl">
     <div class="w-16 h-px bg-accent mb-10" />
 
-    <div class="grid lg:grid-cols-3 gap-12 lg:gap-16">
+    <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 mb-16">
       <div>
         <p class="text-xs tracking-[0.3em] uppercase text-white/30 mb-5 font-medium">
           Contacto
@@ -19,36 +19,34 @@ const contactInfo = [
         <h2 class="font-serif text-3xl md:text-4xl text-white leading-tight mb-6">
           Estamos para<br />ayudarte
         </h2>
-        <p class="text-white/30 text-sm leading-relaxed">
+        <p class="text-white/30 text-sm leading-relaxed max-w-sm">
           Consultanos sin compromiso. Respondemos tus consultas con seriedad y discrecion.
         </p>
       </div>
 
-      <div class="flex items-center">
-        <iframe
-          src="https://www.google.com/maps/embed?q=Av.+del+Libertador+6328,+Buenos+Aires"
-          width="100%"
-          height="220"
-          style="border:0; filter: grayscale(100%) invert(0.92) hue-rotate(180deg);"
-          allowfullscreen=""
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          title="Ubicacion Escribania Togcani"
-          class="rounded w-full"
-        >
-        </iframe>
+      <div class="grid grid-cols-2 gap-8">
+        {contactInfo.map((c) => (
+          <div>
+            <p class="text-xs tracking-[0.2em] uppercase text-accent/50 mb-1.5 font-medium">{c.label}</p>
+            <p class="text-white/70 text-sm">{c.value}</p>
+          </div>
+        ))}
       </div>
+    </div>
 
-      <div class="flex items-center">
-        <div class="space-y-8">
-          {contactInfo.map((c) => (
-            <div>
-              <p class="text-xs tracking-[0.2em] uppercase text-accent/50 mb-1.5 font-medium">{c.label}</p>
-              <p class="text-white/70 text-sm">{c.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+    <div class="rounded overflow-hidden h-64 bg-neutral-800">
+      <iframe
+        width="100%"
+        height="100%"
+        frameborder="0"
+        scrolling="no"
+        marginheight="0"
+        marginwidth="0"
+        src="https://www.openstreetmap.org/export/embed.html?bbox=-58.38,-34.568,-58.373,-34.563&amp;layer=mapnik&amp;marker=-34.5657,-58.3775"
+        style="border:0; filter: grayscale(100%) invert(0.92) hue-rotate(180deg);"
+        title="Av. del Libertador 6328, CABA"
+      >
+      </iframe>
     </div>
 
     <div class="border-t border-white/8 mt-16 pt-6">
