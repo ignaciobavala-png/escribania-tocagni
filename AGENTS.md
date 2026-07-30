@@ -16,6 +16,8 @@ sucesiones, asesoramiento notarial.
 | Package | pnpm |
 | Lenguaje | TypeScript strict |
 
+Build: ~48 KB, 0 JS. Solamente HTML + CSS.
+
 ### Dependencias instaladas (sin usar aun)
 
 - `@astrojs/react` + `react` / `react-dom` — para el chatbot futuro
@@ -36,29 +38,48 @@ Cuenta Cloudflare: `ethoslogliberty@gmail.com` (Neo Nach).
 
 ## Tema visual
 
-Paleta definida en `src/styles/global.css` via `@theme`:
+Diseno editorial estilo revista de alta costura (Vogue, Architectural Digest):
+tipografia grande, reglas doradas finas, lineas divisorias, numeracion de
+secciones, layout de columnas asimetrico.
+
+Paleta refinada definida en `src/styles/global.css` via `@theme`:
 
 | Token | Color | Uso |
 |-------|-------|-----|
-| `--color-primary` | #1e3a5f (navy) | Fondo hero, headings, iconos |
-| `--color-accent` | #c9a84c (dorado) | Botones CTA, badges, detalles |
-| `--color-neutral-*` | escala 50-900 | Fondos, texto, bordes |
+| `--color-primary` | #1a2940 (navy calido) | Fondo hero, footer, tipografia destacada |
+| `--color-accent` | #b8944c (bronze muted) | Reglas divisorias, numeros, acentos sutiles |
+| `--color-neutral-*` | escala 50-900 (taupe calido) | Fondos, texto, bordes |
 
 Fuentes: Playfair Display (serif, headings) + Inter (sans, cuerpo).
+
+Reglas de diseno:
+- Regla dorada fina (w-16 h-px) al inicio de cada seccion
+- Labels en uppercase con tracking-[0.3em]
+- Titulos grandes en Playfair Display con tracking-tight
+- Numeros de seccion en la tipografia serif (01, 02, 03...)
+- Sin iconos ni imagenes decorativas, solo tipografia y espacio
+- Bordes sutiles (divide-x, border-t) en white/8 o neutral/200
 
 ## Estructura
 
 ```
 src/
 ├── components/
-│   ├── Header.astro       → navegacion sticky sobre el hero
-│   ├── Hero.astro         → seccion principal, titulo, CTA
-│   ├── Servicios.astro    → grilla de 6 servicios (cards)
-│   └── Contacto.astro     → datos de contacto + footer
+│   ├── Header.astro       → nav liviana, tracking wide, telefono visible
+│   ├── Hero.astro         → titulo centrado 8xl, regla dorada, grid geometrico
+│   ├── QuienesSomos.astro → layout 3 columnas, texto institucional, "20" grande
+│   ├── Servicios.astro    → grilla numerada 01-06 con lineas divisorias
+│   └── Contacto.astro     → footer navy, datos en grid 2x2, mapa OSM
 ├── layouts/Layout.astro   → base HTML, meta tags, Google Fonts
 ├── pages/index.astro      → unica pagina (landing single-page)
 └── styles/global.css      → Tailwind v4 + @theme tokens
 ```
+
+### Datos reales
+
+- Direccion: Av. del Libertador 6328, Buenos Aires
+- Coordenadas: -34.55368, -58.45052 (Nominatim, Belgrano/Barrio Chino)
+- Mapa: OpenStreetMap iframe sin API key, filtro CSS monocromatico
 
 ## Fase 2 — Chatbot con Groq (pendiente)
 
