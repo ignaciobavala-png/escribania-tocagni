@@ -1,18 +1,18 @@
 ---
 const navLinks = [
-  { href: '#quienes-somos', label: 'Quienes Somos' },
+  { href: '#quienes-somos', label: 'Quiénes Somos' },
   { href: '#servicios', label: 'Servicios' },
+  { href: '#preguntas', label: 'Preguntas' },
   { href: '#contacto', label: 'Contacto' },
 ];
 ---
 
 <header class="absolute top-0 left-0 right-0 z-50">
   <div class="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between gap-4">
+    <!-- Sin wordmark: el nombre ya está en el h1 del hero, justo debajo.
+         El <header> es absolute y se va con el scroll, así que no queda
+         ningún momento en que la marca haga falta acá. -->
     <div class="flex items-center gap-10">
-      <a href="/" class="font-serif text-xl text-white font-semibold tracking-tight">
-        Togcani
-      </a>
-
       <nav class="hidden lg:flex items-center gap-6">
         {navLinks.map((link) => (
           <a
@@ -26,14 +26,8 @@ const navLinks = [
     </div>
 
     <div class="flex items-center gap-4 lg:gap-6">
-      <!-- Telefono: siempre visible, es la accion principal en movil -->
-      <a
-        href="tel:+541155551234"
-        class="text-white/60 hover:text-white/90 text-sm tracking-wide transition-colors whitespace-nowrap"
-      >
-        +54 11 5555-1234
-      </a>
-
+      <!-- El teléfono salió de acá: la acción principal ahora es el FAB de
+           WhatsApp, siempre visible en la esquina inferior derecha. -->
       <a
         href="#contacto"
         class="hidden sm:inline-flex text-white border border-accent/30 hover:border-accent/60 hover:text-accent font-medium px-5 py-2 text-sm tracking-widest uppercase transition-colors duration-300"
@@ -41,9 +35,9 @@ const navLinks = [
         Consultar
       </a>
 
-      <!-- Menu movil sin JS: <details> nativo -->
+      <!-- Menú móvil sin JS: <details> nativo -->
       <details class="menu lg:hidden">
-        <summary class="text-white p-1 cursor-pointer" aria-label="Abrir menu">
+        <summary class="text-white p-1 cursor-pointer" aria-label="Abrir menú">
           <svg class="menu-open w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
@@ -83,7 +77,7 @@ const navLinks = [
     display: none;
   }
 
-  /* Alterna hamburguesa / cruz segun el estado del details */
+  /* Alterna hamburguesa / cruz según el estado del details */
   .menu > summary .menu-close,
   .menu[open] > summary .menu-open {
     display: none;

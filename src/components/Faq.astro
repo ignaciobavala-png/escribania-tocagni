@@ -1,0 +1,203 @@
+---
+// Respuestas en BORRADOR: pendientes de revisión de la escribana.
+// Ver CLAUDE.md > FAQ para el detalle de qué hay que confirmar en cada una.
+const faqs = [
+  {
+    number: '01',
+    question: '¿Necesito turno previo para ir?',
+    answer:
+      'Para certificación de firmas atendemos por orden de llegada dentro del horario de atención. Para escrituras, poderes y consultas de asesoramiento trabajamos con turno: así reservamos el tiempo necesario y te adelantamos qué documentación traer. Podés solicitarlo por teléfono o por email.',
+  },
+  {
+    number: '02',
+    question: '¿Quién elige el escribano en una compraventa?',
+    answer:
+      'Por costumbre lo elige la parte compradora, que es quien habitualmente afronta los gastos de escrituración. No es una regla legal: las partes pueden acordar otra cosa en la reserva o en el boleto. Si la compra se hace con crédito hipotecario, el banco puede exigir un escribano de su nómina para la hipoteca.',
+  },
+  {
+    number: '03',
+    question: '¿Qué gastos tiene escriturar, además de los honorarios?',
+    answer:
+      'Una escritura de compraventa suma, a los honorarios notariales, el impuesto de sellos, los aportes y contribuciones de ley, la solicitud de certificados registrales de dominio e inhibiciones, el estudio de títulos y los gastos de inscripción en el Registro de la Propiedad Inmueble. Cómo se reparte cada concepto entre las partes suele pactarse en el boleto. Entregamos un presupuesto detallado antes de la firma.',
+  },
+  {
+    number: '04',
+    question: '¿La propiedad está en provincia de Buenos Aires, pueden hacerlo?',
+    answer:
+      'En la práctica, los inmuebles se escrituran ante un escribano de la jurisdicción donde están ubicados, por los registros e impuestos locales que intervienen. Igual podemos acompañarte: el asesoramiento previo, la revisión del boleto, los poderes y las certificaciones de firmas los hacemos nosotros. Contanos tu caso y te orientamos.',
+  },
+  {
+    number: '05',
+    question: '¿Pueden ir a firmar a un domicilio, sanatorio u oficina?',
+    answer:
+      'Sí. Cuando alguna de las partes no puede trasladarse por razones de salud, edad o agenda, nos dirigimos al lugar donde se encuentre dentro de la Ciudad de Buenos Aires para tomar la firma. Conviene coordinarlo con anticipación para dejar la documentación preparada.',
+  },
+  {
+    number: '06',
+    question: '¿Qué documentación llevo para certificar una firma?',
+    answer:
+      'El documento todavía sin firmar, porque la firma se pone delante del escribano, y tu DNI vigente. Si firmás en representación de una sociedad, hace falta además el estatuto y la documentación que acredite tu cargo, o el poder vigente. Ante cualquier duda, escribinos antes de venir.',
+  },
+  {
+    number: '07',
+    question: '¿La sucesión se tramita en la escribanía o en el juzgado?',
+    answer:
+      'La declaratoria de herederos tramita ante el fuero judicial, no puede resolverse enteramente en la escribanía. Nuestro trabajo empieza antes y continúa después: asesoramos en la planificación patrimonial y, una vez dictada la declaratoria, formalizamos por escritura la partición y adjudicación de los bienes y su inscripción registral. También redactamos testamentos y donaciones con reserva de usufructo, que permiten ordenar la sucesión en vida.',
+  },
+  {
+    number: '08',
+    question: '¿Cuánto tarda constituir una sociedad?',
+    answer:
+      'Depende del tipo societario elegido y de los tiempos de la Inspección General de Justicia. Lo que sí podemos anticiparte es el circuito: definimos el tipo (SAS, SRL o SA) según la actividad y la cantidad de socios, redactamos el instrumento constitutivo, se presenta ante IGJ y, una vez inscripta, se gestionan CUIT y libros. En la primera reunión te damos un cronograma estimado.',
+  },
+];
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.question,
+    acceptedAnswer: { '@type': 'Answer', text: f.answer },
+  })),
+};
+---
+
+<section id="preguntas" class="py-16 md:py-20 px-6">
+  <div class="mx-auto max-w-7xl">
+    <div class="w-16 h-px bg-accent mb-10" />
+
+    <div class="grid lg:grid-cols-12 gap-10 lg:gap-20">
+      <div class="lg:col-span-4">
+        <p class="text-sm tracking-[0.3em] uppercase text-neutral-400 mb-5 font-medium">
+          Preguntas Frecuentes
+        </p>
+
+        <h2 class="font-serif text-4xl md:text-5xl text-primary leading-tight mb-6">
+          Antes de<br />tu consulta
+        </h2>
+
+        <p class="text-neutral-500 text-base leading-relaxed max-w-sm">
+          Las dudas que más nos acercan. Si la tuya no está en la lista,
+          escribinos y la respondemos sin cargo.
+        </p>
+      </div>
+
+      <div class="lg:col-span-8">
+        {faqs.map((f) => (
+          <details name="faq" class="faq border-t border-neutral-200 last:border-b">
+            <summary class="flex items-start gap-4 md:gap-6 py-5 cursor-pointer select-none">
+              <span class="font-serif text-base text-accent tabular-nums pt-1">
+                {f.number}
+              </span>
+
+              <span class="faq-question flex-1 font-serif text-xl md:text-2xl text-primary leading-snug">
+                {f.question}
+              </span>
+
+              <span class="faq-icon mt-2" aria-hidden="true" />
+            </summary>
+
+            <div class="faq-answer pl-10 md:pl-14 pr-4 pb-6 -mt-1">
+              <p class="text-neutral-500 text-base leading-relaxed max-w-2xl">
+                {f.answer}
+              </p>
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} is:inline />
+</section>
+
+<style>
+  /* Marker nativo fuera: el indicador es .faq-icon (mismo criterio que el menú móvil) */
+  .faq > summary {
+    list-style: none;
+  }
+
+  .faq > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq > summary:focus-visible {
+    outline: 1px solid var(--color-accent);
+    outline-offset: 4px;
+  }
+
+  /* Cruz dibujada en CSS: la barra vertical colapsa al abrir y queda el signo menos */
+  .faq-icon {
+    position: relative;
+    flex: none;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .faq-icon::before,
+  .faq-icon::after {
+    content: '';
+    position: absolute;
+    background-color: var(--color-accent);
+  }
+
+  .faq-icon::before {
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+  }
+
+  .faq-icon::after {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    transition: transform 0.3s ease;
+  }
+
+  .faq[open] .faq-icon::after {
+    transform: scaleY(0);
+  }
+
+  .faq-question {
+    transition: color 0.3s ease;
+  }
+
+  .faq[open] .faq-question {
+    color: var(--color-accent-dark);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .faq > summary:hover .faq-question {
+      color: var(--color-accent-dark);
+    }
+  }
+
+  .faq[open] .faq-answer {
+    animation: faq-reveal 0.35s ease both;
+  }
+
+  @keyframes faq-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(-0.375rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .faq-icon::after,
+    .faq-question {
+      transition: none;
+    }
+
+    .faq[open] .faq-answer {
+      animation: none;
+    }
+  }
+</style>

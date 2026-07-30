@@ -1,4 +1,4 @@
-# Escribania Togcani — Landing Page
+# Escribania Tocagni — Landing Page
 
 > **Este archivo es la fuente de verdad del proyecto y se edita a mano.**
 > `AGENTS.md` lo genera `brain-agents-inject` en cada SessionStart y se
@@ -14,10 +14,9 @@ sucesiones, asesoramiento notarial.
 
 Escribana titular: **Ines Tocagni**.
 
-> Ojo con el nombre: el sitio, el repo y el dominio dicen "Togcani", pero el
-> apellido de la escribana es "Tocagni". Esta pendiente confirmar con el cliente
-> cual es el correcto. Si es Tocagni, hay que corregir Header, Hero, footer, meta
-> tags y el nombre del Worker.
+> El apellido correcto es **Tocagni**. El sitio y el Worker ya usan esa grafia.
+> Siguen diciendo "togcani" solo el nombre del directorio del repo y el `name` de
+> `package.json`: cosmeticos, no afectan al deploy.
 
 ## Stack
 
@@ -47,7 +46,7 @@ pnpm run build          # genera dist/
 pnpm exec wrangler deploy # sube a Cloudflare Workers
 ```
 
-URL: `https://escribania-togcani.ethoslogliberty.workers.dev`
+URL: `https://escribania-tocagni.ethoslogliberty.workers.dev`
 
 Cuenta Cloudflare: `ethoslogliberty@gmail.com` (Neo Nach).
 
@@ -105,11 +104,14 @@ para que el copyright quede contra el borde inferior de la pagina.
 ```
 src/
 ├── components/
-│   ├── Header.astro       → nav + telefono siempre visible + menu movil <details>
+│   ├── Header.astro       → nav + menu movil <details> (sin wordmark ni telefono)
+│   ├── WhatsappFab.astro  → boton flotante solo-icono, esquina inferior derecha
 │   ├── Hero.astro         → titulo centrado 8xl, regla dorada, grid geometrico
 │   ├── QuienesSomos.astro → 2 columnas: texto (7/12) | retrato + firma (5/12)
 │   ├── Servicios.astro    → grilla numerada 01-06, hover/scroll-reveal en CSS
+│   ├── Faq.astro          → acordeon 01-08 con <details name="faq"> + JSON-LD
 │   └── Contacto.astro     → footer navy, datos en grid, franja de mapa full-bleed
+├── data/contacto.ts       → fuente unica de telefono, email y URL del mapa
 ├── layouts/Layout.astro   → base HTML, meta tags, favicons, Google Fonts
 ├── pages/index.astro      → unica pagina (landing single-page)
 └── styles/global.css      → Tailwind v4 + @theme tokens
@@ -120,6 +122,11 @@ src/
 - Direccion: Av. del Libertador 6328, Buenos Aires
 - Coordenadas: -34.55368, -58.45052 (Nominatim, Belgrano/Barrio Chino)
 - Telefono y email del header/footer son **placeholders**, falta confirmarlos
+- En `Contacto.astro` los datos son enlaces, no texto: direccion → Google Maps,
+  telefono → `wa.me`, email → `mailto:`. El numero vive dos veces con formato
+  distinto (`phoneDisplay` para mostrar, `phoneWhatsapp` solo digitos para
+  `wa.me`): **al reemplazar el placeholder hay que cambiar los dos.**
+  `wa.me` quiere codigo de pais y **sin el 15**: `+54 11 4444-5555` → `541144445555`
 - Matricula profesional en el footer es placeholder (`N° XXXX`)
 
 ### Assets en `public/`
@@ -136,6 +143,27 @@ los tamanos chicos. Si hay que regenerarlos, el recorte usado fue
 `convert origen.png -crop 764x764+258+221`.
 
 `icon-512.png` pesa ~155 KB. Si molesta en el bundle, `pngquant` lo baja a ~20 KB.
+
+## Boton flotante de WhatsApp
+
+`WhatsappFab.astro`, `fixed bottom-right`, `z-40`. Solo el isotipo, sin texto:
+el CTA "Consultar" ya esta en el header y repetir la palabra abarataba la pieza.
+
+- El verde de marca (`#25D366`) es neon y rompia la paleta. Se usa
+  `--color-whatsapp: #1e6b4f`, mismo matiz pero con el valor bajo del navy.
+  La sombra tambien es fria (`rgb(26 41 64 / .55)`), no el gris de un FAB generico.
+- Cuadrado, sin `rounded`: **en toda la pagina no hay una sola esquina redondeada.**
+- El mensaje precargado sale de `whatsappMessage` en `data/contacto.ts`.
+- Chocaba con el boton "Ver en el mapa", que estaba `bottom-right` en la franja
+  del mapa: **ese boton se movio a `bottom-left`.** Si se agrega otro elemento
+  flotante, revisar esa esquina.
+
+## Ortografia
+
+El sitio usa **tildes y ñ correctas** en todo el texto visible y en los
+comentarios. Antes no las tenia (`mas de 20 anos`), lo que en una web
+profesional se lee como un error grave — "anos" no significa "años".
+Al agregar copy nuevo, mantener la acentuacion.
 
 ## Mapa
 
@@ -175,8 +203,13 @@ Decisiones que no son obvias leyendo el markup:
   `Header.astro`, con el panel `absolute top-full` (el `<header>` es `absolute`,
   asi que es su bloque contenedor). El `<style>` scoped oculta el marker nativo
   y alterna hamburguesa/cruz con `.menu[open]`. **No reemplazar por JS.**
-- **El telefono nunca se oculta**: es la accion principal en movil. El boton
-  "Consultar" aparece desde `sm`; abajo de eso vive dentro del menu.
+- **El telefono ya no esta en el header.** La accion principal en movil es el
+  FAB de WhatsApp, siempre visible. El boton "Consultar" aparece desde `sm`;
+  abajo de eso vive dentro del menu.
+- **El header no tiene wordmark**: el nombre ya esta en el `h1` del hero, justo
+  debajo. Como el `<header>` es `absolute` y se va con el scroll, no hay ningun
+  momento en que la marca haga falta ahi. En movil eso deja el lado izquierdo
+  vacio y el hamburguesa solo a la derecha: es intencional.
 - **Hover en touch**: Tailwind v4 ya envuelve sus variantes `hover:` en
   `@media (hover: hover)`, asi que el hover pegado no es un problema con
   utilidades. Si con CSS escrito a mano — hay que poner la guarda explicita.
@@ -188,6 +221,39 @@ Decisiones que no son obvias leyendo el markup:
     se revela al entrar en pantalla. Sin soporte queda el estado destacado fijo,
     nunca el apagado.
 - `prefers-reduced-motion` anula `animation` y `transition` en las tarjetas.
+
+## FAQ
+
+Seccion `#preguntas`, entre Servicios y Contacto. Acordeon de 8 preguntas
+numeradas 01-08, **sin JavaScript**: `<details>`/`<summary>` como en el menu
+movil. Detalles que no se leen del markup:
+
+- `name="faq"` en cada `<details>` lo convierte en **acordeon exclusivo** nativo
+  (se cierra el anterior al abrir otro). Donde no hay soporte (Firefox < 130)
+  simplemente quedan varios abiertos: degrada sin romper.
+- El indicador `+`/`−` es una cruz dibujada con `::before`/`::after` sobre
+  `.faq-icon`; al abrir, la barra vertical colapsa con `scaleY(0)`. **No usar
+  utilidades `translate-*` de Tailwind ahi**: en v4 escriben la propiedad
+  `translate`, no `transform`, y el toggle deja de funcionar.
+- El `<script type="application/ld+json">` con el schema `FAQPage` se genera del
+  mismo array `faqs`, asi que las respuestas del sitio y las del structured data
+  no pueden desincronizarse. Es un bloque de datos, no JS ejecutable: el build
+  sigue emitiendo 0 archivos `.js`.
+
+### Las respuestas son borrador
+
+Ninguna respuesta fue validada por la escribana. Cuatro tienen contenido
+sensible que hay que confirmar antes de publicar:
+
+| # | Pregunta | Que confirmar |
+|---|----------|---------------|
+| 01 | Turnos | Si certificaciones es realmente por orden de llegada |
+| 04 | Inmueble en provincia | Redaccion de la competencia territorial (esta escrita como practica, no como regla legal, a proposito) |
+| 07 | Sucesiones | Limite entre lo judicial y lo notarial |
+| 03 | Gastos de escrituracion | Que no falte ni sobre ningun concepto |
+
+Las respuestas son el corpus de grounding del chatbot de fase 2: por eso cada
+una es autocontenida y cubre un solo tema.
 
 ## Fase 2 — Chatbot con Groq (pendiente)
 

@@ -1,9 +1,30 @@
 ---
+import { phoneDisplay, whatsappUrl, email, mapsUrl } from '../data/contacto';
+
 const contactInfo = [
-  { label: 'Direccion', value: 'Av. del Libertador 6328, Buenos Aires' },
-  { label: 'Telefono', value: '+54 11 5555-1234' },
-  { label: 'Email', value: 'info@escribaniatogcani.com' },
-  { label: 'Horario', value: 'Lunes a Viernes de 9 a 18 hs' },
+  {
+    label: 'Dirección',
+    value: 'Av. del Libertador 6328, Buenos Aires',
+    href: mapsUrl,
+    external: true,
+    hint: 'Ver cómo llegar',
+  },
+  {
+    label: 'Teléfono',
+    value: phoneDisplay,
+    href: whatsappUrl,
+    external: true,
+    hint: 'Escribinos por WhatsApp',
+  },
+  {
+    label: 'Email',
+    value: email,
+    href: `mailto:${email}`,
+  },
+  {
+    label: 'Horario',
+    value: 'Lunes a Viernes de 9 a 18 hs',
+  },
 ];
 ---
 
@@ -20,7 +41,7 @@ const contactInfo = [
           Estamos para<br />ayudarte
         </h2>
         <p class="text-white/30 text-base leading-relaxed max-w-sm">
-          Consultanos sin compromiso. Respondemos tus consultas con seriedad y discrecion.
+          Consultanos sin compromiso. Respondemos tus consultas con seriedad y discreción.
         </p>
       </div>
 
@@ -28,7 +49,20 @@ const contactInfo = [
         {contactInfo.map((c) => (
           <div>
             <p class="text-sm tracking-[0.2em] uppercase text-accent/50 mb-1.5 font-medium">{c.label}</p>
-            <p class="text-white/70 text-base break-words">{c.value}</p>
+
+            {c.href ? (
+              <a
+                href={c.href}
+                target={c.external ? '_blank' : undefined}
+                rel={c.external ? 'noopener noreferrer' : undefined}
+                class="contact-link inline-block text-white/70 text-base break-words"
+              >
+                <span class="contact-value relative inline-block">{c.value}</span>
+                <span class="block mt-1 text-sm text-white/25 tracking-wide">{c.hint ?? 'Escribinos'}</span>
+              </a>
+            ) : (
+              <p class="text-white/70 text-base break-words">{c.value}</p>
+            )}
           </div>
         ))}
       </div>
@@ -57,10 +91,10 @@ const contactInfo = [
     </div>
 
     <a
-      href="https://www.google.com/maps/search/?api=1&amp;query=-34.5537,-58.4505"
+      href={mapsUrl}
       target="_blank"
       rel="noopener noreferrer"
-      class="absolute bottom-4 right-4 md:bottom-5 md:right-6 inline-flex items-center gap-2 bg-primary/90 backdrop-blur-sm text-white/80 hover:text-white text-sm tracking-[0.2em] uppercase font-medium px-4 py-2.5 border border-white/15 hover:border-accent/60 transition-colors duration-300"
+      class="absolute bottom-4 left-4 md:bottom-5 md:left-6 inline-flex items-center gap-2 bg-primary/90 backdrop-blur-sm text-white/80 hover:text-white text-sm tracking-[0.2em] uppercase font-medium px-4 py-2.5 border border-white/15 hover:border-accent/60 transition-colors duration-300"
     >
       Ver en el mapa
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -73,12 +107,63 @@ const contactInfo = [
     <div class="pt-5">
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <p class="text-white/25 text-sm tracking-wide">
-          &copy; {new Date().getFullYear()} Escribania Togcani. Todos los derechos reservados.
+          &copy; {new Date().getFullYear()} Escribanía Tocagni. Todos los derechos reservados.
         </p>
         <p class="text-white/15 text-sm tracking-wide">
-          Matricula Profesional N° XXXX
+          Matrícula Profesional N° XXXX
         </p>
       </div>
     </div>
   </div>
 </footer>
+
+<style>
+  /* Regla dorada que crece de izquierda a derecha, mismo lenguaje que el resto */
+  .contact-link {
+    position: relative;
+    transition: color 0.3s ease;
+  }
+
+  .contact-value::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -0.125rem;
+    height: 1px;
+    width: 100%;
+    background-color: var(--color-accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+
+  .contact-link:focus-visible {
+    outline: 1px solid var(--color-accent);
+    outline-offset: 4px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .contact-link:hover {
+      color: #fff;
+    }
+
+    .contact-link:hover .contact-value::after {
+      transform: scaleX(1);
+    }
+  }
+
+  /* Sin puntero no hay hover que revele el enlace: la regla queda visible al 40% */
+  @media (hover: none) {
+    .contact-value::after {
+      transform: scaleX(1);
+      opacity: 0.4;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .contact-link,
+    .contact-value::after {
+      transition: none;
+    }
+  }
+</style>

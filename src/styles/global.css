@@ -7,6 +7,10 @@
   --color-accent: #b8944c;
   --color-accent-light: #c7a76a;
   --color-accent-dark: #9b7b3a;
+  /* Verde WhatsApp desaturado: el #25D366 de marca es neon y rompe la paleta.
+     Este mantiene el matiz para que se reconozca, con el valor bajo del navy. */
+  --color-whatsapp: #1e6b4f;
+  --color-whatsapp-dark: #175540;
   --color-neutral-50: #faf9f6;
   --color-neutral-100: #f4f1eb;
   --color-neutral-200: #e8e3d8;
