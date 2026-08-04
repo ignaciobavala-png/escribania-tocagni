@@ -1,38 +1,5 @@
 ---
-// Textos definitivos provistos por Inés (Word "PAGINA WEB", 2026-08-04).
-const servicios = [
-  { number: '01', title: 'Certificaciones', description: 'Certificación de firmas ológrafas y digitales, autenticación de documentos y copias, legalizaciones y apostillas.' },
-  { number: '02', title: 'Operaciones inmobiliarias', description: 'Compraventas, donaciones, permutas, usufructos, hipotecas, reglamentos de propiedad horizontal, afectación y desafectación al Régimen de Protección de la Vivienda y demás actos sobre inmuebles.' },
-  { number: '03', title: 'Poderes y autorizaciones', description: 'Poderes generales y especiales, autorizaciones para viajar al exterior de menores de edad y para conducir vehículos.' },
-  { number: '04', title: 'Sociedades', description: 'Constitución de sociedades, rúbrica de libros, reformas estatutarias, designación de autoridades, cambios de sede, fusiones, escisiones, venta de acciones, cesión de cuotas sociales y demás trámites societarios.' },
-  { number: '05', title: 'Sucesiones', description: 'Declaratorias de herederos, cesiones de derechos hereditarios, tracto abreviado e inscripciones registrales.' },
-  { number: '06', title: 'Planificación patrimonial', description: 'Testamentos, donaciones y herramientas jurídicas para organizar y proteger tu patrimonio.' },
-  { number: '07', title: 'Fideicomisos', description: 'Constitución, modificación y extinción de fideicomisos civiles e inmobiliarios.' },
-  { number: '08', title: 'Actas notariales', description: 'Actas de constatación, notificación, intimación, inventario, sorteos, asambleas y demás actuaciones con valor probatorio.' },
-];
-
-// El 09 va aparte porque es el único servicio con ficha ampliada: su tarjeta
-// lleva un "Conocé más" que despliega el detalle. Es un <details> dentro de la
-// misma grilla, mismo criterio que el FAQ y el menú móvil — sin JavaScript.
-// Al abrirse ocupa el ancho completo (ver .dev[open] en el <style>); como es la
-// última tarjeta de la grilla, no empuja a ninguna otra.
-const desarrollo = {
-  number: '09',
-  title: 'Desarrollos inmobiliarios',
-  description: 'Asesoramiento notarial integral para desarrolladores e inversores en todas las etapas del proyecto.',
-};
-
-// El orden es el del Word: son las etapas del proyecto, no una lista suelta.
-const desarrollos = [
-  'Adquisición del inmueble.',
-  'Estructuración jurídica del proyecto.',
-  'Constitución de sociedades y fideicomisos.',
-  'Adhesiones, boletos y cesiones.',
-  'Reglamentos de Propiedad Horizontal.',
-  'Escrituración de unidades.',
-  'Extinción de fideicomisos.',
-  'Inscripciones registrales.',
-];
+import { servicios, desarrollo, etapasDesarrollo } from '../data/servicios';
 ---
 
 <section id="servicios" class="py-16 md:py-20 px-6 bg-neutral-50">
@@ -72,7 +39,7 @@ const desarrollos = [
       <details class="service dev relative px-5 py-6 -mx-5">
         <span class="service-rule absolute left-0 top-0 h-px bg-accent" />
 
-        <summary class="cursor-pointer select-none">
+        <summary class="select-none">
           <div class="flex items-center gap-3 mb-4">
             <span class="service-num font-serif text-lg text-accent tabular-nums">
               {desarrollo.number}
@@ -88,7 +55,7 @@ const desarrollos = [
             {desarrollo.description}
           </p>
 
-          <span class="dev-label inline-flex items-center gap-3 text-sm tracking-[0.2em] uppercase text-accent-dark font-medium">
+          <span class="dev-label inline-flex items-center gap-3 border border-accent/50 px-5 py-3 text-sm tracking-[0.2em] uppercase text-accent-dark font-medium">
             Conocé más
             <span class="dev-icon" aria-hidden="true" />
           </span>
@@ -114,7 +81,7 @@ const desarrollos = [
                 de izquierda a derecha y se pierde el orden del Word, que es
                 el orden real de las etapas del proyecto. */}
             <ul>
-              {desarrollos.map((item) => (
+              {etapasDesarrollo.map((item) => (
                 <li class="flex gap-3 py-2.5 border-t border-neutral-200 last:border-b text-neutral-500 text-base leading-relaxed">
                   <span class="text-accent" aria-hidden="true">—</span>
                   <span>{item}</span>
@@ -164,13 +131,21 @@ const desarrollos = [
     list-style: none;
   }
 
-  .dev > summary::-webkit-details-marker {
-    display: none;
+  /* Solo el "Conoce mas" dispara el despliegue, no la tarjeta entera.
+     El <summary> es clickeable por definicion, asi que se le apaga el puntero
+     y se le devuelve unicamente al boton. No afecta al teclado: el summary
+     sigue recibiendo foco y Enter/Espacio siguen abriendo. */
+  .dev > summary {
+    pointer-events: none;
   }
 
-  .dev > summary:focus-visible {
-    outline: 1px solid var(--color-accent);
-    outline-offset: 4px;
+  .dev > summary .dev-label {
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .dev > summary::-webkit-details-marker {
+    display: none;
   }
 
   .dev-icon {
@@ -214,16 +189,22 @@ const desarrollos = [
   }
 
   .dev-label {
-    transition: color 0.3s ease;
+    transition:
+      color 0.3s ease,
+      background-color 0.3s ease,
+      border-color 0.3s ease;
   }
 
-  .dev[open] .dev-label {
-    color: var(--color-accent-dark);
+  .dev > summary:focus-visible .dev-label {
+    outline: 1px solid var(--color-accent);
+    outline-offset: 4px;
   }
 
   @media (hover: hover) and (pointer: fine) {
     .dev > summary:hover .dev-label {
-      color: var(--color-accent-dark);
+      background-color: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
     }
   }
 

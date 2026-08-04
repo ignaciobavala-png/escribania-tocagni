@@ -1,0 +1,117 @@
+---
+// Structured data del negocio (JSON-LD).
+//
+// Por que existe: sin esto Google sabe que hay una pagina, pero no sabe que
+// detras hay una escribania, donde queda, a que hora atiende ni que hace. Eso
+// es lo que alimenta el panel lateral de Google, el paquete local del mapa y
+// lo que leen los asistentes cuando alguien pregunta "escribania en Belgrano".
+//
+// Se arma del mismo `servicios` que pinta la grilla, asi que la lista que ve el
+// usuario y la que leen los buscadores no pueden divergir. Mismo criterio que
+// el FAQPage de Faq.astro.
+//
+// Es un bloque de datos, no JavaScript ejecutable: el build sigue emitiendo 0
+// archivos .js.
+import { servicios, desarrollo } from '../data/servicios';
+import { phoneWhatsapp, email } from '../data/contacto';
+
+const site = Astro.site?.origin ?? 'https://escribaniatocagni.com';
+const negocioId = `${site}/#escribania`;
+const escribanaId = `${site}/#ines-tocagni`;
+
+const todos = [...servicios, desarrollo];
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${site}/#website`,
+      url: `${site}/`,
+      name: 'Escribanía Tocagni',
+      inLanguage: 'es-AR',
+      publisher: { '@id': negocioId },
+    },
+    {
+      // LegalService es el tipo mas especifico que schema.org tiene para una
+      // notaria: no existe un "Notary". Se suma additionalType apuntando al
+      // concepto de Wikidata para que quede desambiguado.
+      '@type': ['LegalService', 'ProfessionalService'],
+      '@id': negocioId,
+      additionalType: 'https://www.wikidata.org/wiki/Q182436',
+      name: 'Escribanía Tocagni',
+      description:
+        'Escribanía en Belgrano, Ciudad de Buenos Aires. Certificaciones, operaciones inmobiliarias, sucesiones, sociedades, fideicomisos y desarrollos inmobiliarios.',
+      url: `${site}/`,
+      image: `${site}/og.jpg`,
+      logo: `${site}/icon-512.png`,
+      telephone: `+${phoneWhatsapp}`,
+      email,
+      priceRange: '$$',
+      currenciesAccepted: 'ARS',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: 'Av. del Libertador 6328, piso 5.º, oficina 501',
+        addressLocality: 'Ciudad Autónoma de Buenos Aires',
+        addressRegion: 'CABA',
+        addressCountry: 'AR',
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: -34.55368,
+        longitude: -58.45052,
+      },
+      hasMap: 'https://www.google.com/maps/search/?api=1&query=-34.5537,-58.4505',
+      openingHoursSpecification: [
+        {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          opens: '10:00',
+          closes: '18:00',
+        },
+      ],
+      areaServed: [
+        { '@type': 'City', name: 'Ciudad Autónoma de Buenos Aires' },
+        { '@type': 'Country', name: 'Argentina' },
+      ],
+      founder: { '@id': escribanaId },
+      employee: { '@id': escribanaId },
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: 'Servicios notariales',
+        itemListElement: todos.map((s) => ({
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: s.title,
+            description: s.description,
+            provider: { '@id': negocioId },
+            areaServed: { '@type': 'Country', name: 'Argentina' },
+          },
+        })),
+      },
+    },
+    {
+      '@type': 'Person',
+      '@id': escribanaId,
+      name: 'Inés Tocagni',
+      jobTitle: 'Escribana titular',
+      image: `${site}/escribana.jpg`,
+      worksFor: { '@id': negocioId },
+      // El registro notarial es la credencial verificable de una escribana:
+      // es lo que permite chequear la matricula en el Colegio de Escribanos.
+      hasCredential: {
+        '@type': 'EducationalOccupationalCredential',
+        credentialCategory: 'Registro Notarial',
+        identifier: '56',
+        recognizedBy: {
+          '@type': 'Organization',
+          name: 'Colegio de Escribanos de la Ciudad de Buenos Aires',
+        },
+      },
+    },
+  ],
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(schema)} is:inline />
