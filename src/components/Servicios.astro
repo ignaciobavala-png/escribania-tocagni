@@ -1,6 +1,6 @@
 ---
 // Textos definitivos provistos por Inés (Word "PAGINA WEB", 2026-08-04).
-const services = [
+const servicios = [
   { number: '01', title: 'Certificaciones', description: 'Certificación de firmas ológrafas y digitales, autenticación de documentos y copias, legalizaciones y apostillas.' },
   { number: '02', title: 'Operaciones inmobiliarias', description: 'Compraventas, donaciones, permutas, usufructos, hipotecas, reglamentos de propiedad horizontal, afectación y desafectación al Régimen de Protección de la Vivienda y demás actos sobre inmuebles.' },
   { number: '03', title: 'Poderes y autorizaciones', description: 'Poderes generales y especiales, autorizaciones para viajar al exterior de menores de edad y para conducir vehículos.' },
@@ -9,12 +9,20 @@ const services = [
   { number: '06', title: 'Planificación patrimonial', description: 'Testamentos, donaciones y herramientas jurídicas para organizar y proteger tu patrimonio.' },
   { number: '07', title: 'Fideicomisos', description: 'Constitución, modificación y extinción de fideicomisos civiles e inmobiliarios.' },
   { number: '08', title: 'Actas notariales', description: 'Actas de constatación, notificación, intimación, inventario, sorteos, asambleas y demás actuaciones con valor probatorio.' },
-  { number: '09', title: 'Desarrollos inmobiliarios', description: 'Asesoramiento notarial integral para desarrolladores e inversores en todas las etapas del proyecto.' },
 ];
 
-// El 09 es el único servicio con ficha ampliada: el Word pedía un "Conocé más"
-// que abriera el detalle. Es un <details>, mismo criterio que el FAQ y el menú
-// móvil — sin JavaScript.
+// El 09 va aparte porque es el único servicio con ficha ampliada: su tarjeta
+// lleva un "Conocé más" que despliega el detalle. Es un <details> dentro de la
+// misma grilla, mismo criterio que el FAQ y el menú móvil — sin JavaScript.
+// Al abrirse ocupa el ancho completo (ver .dev[open] en el <style>); como es la
+// última tarjeta de la grilla, no empuja a ninguna otra.
+const desarrollo = {
+  number: '09',
+  title: 'Desarrollos inmobiliarios',
+  description: 'Asesoramiento notarial integral para desarrolladores e inversores en todas las etapas del proyecto.',
+};
+
+// El orden es el del Word: son las etapas del proyecto, no una lista suelta.
 const desarrollos = [
   'Adquisición del inmueble.',
   'Estructuración jurídica del proyecto.',
@@ -40,7 +48,7 @@ const desarrollos = [
     </h2>
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10">
-      {services.map((s) => (
+      {servicios.map((s) => (
         <article class="service relative px-5 py-6 -mx-5">
           <span class="service-rule absolute left-0 top-0 h-px bg-accent" />
 
@@ -60,19 +68,34 @@ const desarrollos = [
           </p>
         </article>
       ))}
-    </div>
 
-    <details class="dev mt-12 md:mt-16 border-t border-neutral-200">
-      <summary class="flex items-center gap-4 py-6 cursor-pointer select-none">
-        <span class="font-serif text-lg text-accent tabular-nums">09</span>
-        <span class="dev-label flex-1 text-base tracking-[0.2em] uppercase text-primary font-medium">
-          Desarrollos inmobiliarios — Conocé más
-        </span>
-        <span class="dev-icon" aria-hidden="true" />
-      </summary>
+      <details class="service dev relative px-5 py-6 -mx-5">
+        <span class="service-rule absolute left-0 top-0 h-px bg-accent" />
 
-      <div class="dev-body pb-4">
-        <div class="grid lg:grid-cols-12 gap-10 lg:gap-16 pt-2">
+        <summary class="cursor-pointer select-none">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="service-num font-serif text-lg text-accent tabular-nums">
+              {desarrollo.number}
+            </span>
+            <span class="service-line flex-1 h-px bg-neutral-200" />
+          </div>
+
+          <h3 class="service-title font-serif text-[1.375rem] md:text-2xl text-primary leading-snug mb-2.5">
+            {desarrollo.title}
+          </h3>
+
+          <p class="service-desc text-neutral-500 text-base leading-relaxed mb-4">
+            {desarrollo.description}
+          </p>
+
+          <span class="dev-label inline-flex items-center gap-3 text-sm tracking-[0.2em] uppercase text-accent-dark font-medium">
+            Conocé más
+            <span class="dev-icon" aria-hidden="true" />
+          </span>
+        </summary>
+
+        <div class="dev-body pt-8 mt-6 border-t border-neutral-200">
+          <div class="grid lg:grid-cols-12 gap-10 lg:gap-16">
           <div class="lg:col-span-5">
             <h3 class="font-serif text-3xl md:text-4xl text-primary leading-tight mb-5">
               Seguridad jurídica para proyectos que trascienden
@@ -87,9 +110,12 @@ const desarrollos = [
               Nuestro acompañamiento comprende
             </p>
 
-            <ul class="grid sm:grid-cols-2 gap-x-8">
+            {/* Una sola columna a proposito: en dos columnas la lista se lee
+                de izquierda a derecha y se pierde el orden del Word, que es
+                el orden real de las etapas del proyecto. */}
+            <ul>
               {desarrollos.map((item) => (
-                <li class="flex gap-3 py-2.5 border-t border-neutral-200 text-neutral-500 text-base leading-relaxed">
+                <li class="flex gap-3 py-2.5 border-t border-neutral-200 last:border-b text-neutral-500 text-base leading-relaxed">
                   <span class="text-accent" aria-hidden="true">—</span>
                   <span>{item}</span>
                 </li>
@@ -115,7 +141,8 @@ const desarrollos = [
           </a>
         </div>
       </div>
-    </details>
+      </details>
+    </div>
   </div>
 </section>
 
@@ -126,6 +153,13 @@ const desarrollos = [
      vertical colapsa con scaleY(0) al abrir.
      OJO: no usar utilidades translate-* de Tailwind v4 en el icono — escriben la
      propiedad `translate`, no `transform`, y el toggle deja de funcionar. */
+  /* Cerrada es una tarjeta mas de la grilla; abierta ocupa todo el ancho para
+     que el detalle no quede exprimido en un tercio de columna. Es la ultima
+     tarjeta, asi que expandirse no reacomoda a ninguna otra. */
+  .dev[open] {
+    grid-column: 1 / -1;
+  }
+
   .dev > summary {
     list-style: none;
   }
@@ -170,6 +204,13 @@ const desarrollos = [
 
   .dev[open] .dev-icon::after {
     transform: scaleY(0);
+  }
+
+  /* Abierta ya no es una tarjeta que invita a clickear: se le saca el levante
+     del hover para que no se mueva el bloque entero mientras se lee. */
+  .dev[open],
+  .dev[open]:hover {
+    transform: none;
   }
 
   .dev-label {
