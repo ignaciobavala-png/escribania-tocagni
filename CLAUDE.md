@@ -8,11 +8,15 @@
 
 ## Cliente
 
-Escribania (notaria) con mas de 20 anos de trayectoria en Buenos Aires. Servicios:
-certificaciones, contratos, tramites societarios, compraventa de inmuebles,
-sucesiones, asesoramiento notarial.
+Escribania (notaria) en Belgrano, Ciudad de Buenos Aires. **Mas de diez anos**
+de trayectoria — el sitio decia "veinte" hasta el 2026-08-04, pero el Word con
+los textos definitivos dice diez y se respeto lo que escribio la escribana.
 
-Escribana titular: **Ines Tocagni**.
+Escribana titular: **Ines Tocagni**, Registro Notarial N° 56 (CABA).
+
+Nueve servicios, numerados 01-09 en el sitio: certificaciones, operaciones
+inmobiliarias, poderes y autorizaciones, sociedades, sucesiones, planificacion
+patrimonial, fideicomisos, actas notariales y desarrollos inmobiliarios.
 
 > El apellido correcto es **Tocagni**. Unificado el 2026-08-04: sitio, Worker,
 > directorio del repo y `name` de `package.json` usan todos esa grafia. Si
@@ -48,9 +52,21 @@ pnpm run build          # genera dist/
 pnpm exec wrangler deploy # sube a Cloudflare Workers
 ```
 
-URL: `https://escribania-tocagni.ethoslogliberty.workers.dev`
+**En produccion desde el 2026-08-04: https://escribaniatocagni.com**
+
+El dominio es **`.com`** — no se consiguio el `.com.ar`. Vive como custom domain
+del Worker, con los nameservers de Cloudflare (`abby`/`ricardo.ns.cloudflare.com`)
+y certificado emitido por ellos. El `site` de `astro.config.mjs` es la fuente
+unica: de ahi salen el canonical, las etiquetas `og:` y el `@id` del schema.
+
+URL vieja, sigue respondiendo: `https://escribania-tocagni.ethoslogliberty.workers.dev`
 
 Cuenta Cloudflare: `ethoslogliberty@gmail.com` (Neo Nach).
+
+> **Cache**: el dominio esta detras del CDN de Cloudflare. Despues de un deploy
+> puede seguir sirviendo la version anterior un rato (`cf-cache-status: HIT`).
+> Si hay que verificar un cambio recien subido, pegarle a la URL de
+> `workers.dev`, que no cachea, o mandar un query string cualquiera.
 
 ## Tema visual
 
@@ -125,43 +141,70 @@ src/
 ├── components/
 │   ├── Header.astro       → nav + menu movil <details> (sin wordmark ni telefono)
 │   ├── WhatsappFab.astro  → boton flotante solo-icono, esquina inferior derecha
-│   ├── Hero.astro         → titulo centrado 8xl, regla dorada, grid geometrico
+│   ├── Hero.astro         → marca centrada en Cinzel caja alta, regla dorada
 │   ├── QuienesSomos.astro → 2 columnas: texto (7/12) | retrato + firma (5/12)
-│   ├── Servicios.astro    → grilla numerada 01-06, hover/scroll-reveal en CSS
-│   ├── Faq.astro          → acordeon 01-08 con <details name="faq"> + JSON-LD
-│   └── Contacto.astro     → footer navy, datos en grid, franja de mapa full-bleed
+│   ├── Servicios.astro    → grilla numerada 01-09, hover/scroll-reveal en CSS
+│   ├── Faq.astro          → acordeon 01-10 con <details name="faq"> + JSON-LD
+│   ├── Contacto.astro     → footer navy, datos en grid, franja de mapa full-bleed
+│   └── Schema.astro       → JSON-LD del negocio (no renderiza nada visible)
 ├── data/contacto.ts       → fuente unica de telefono, email y URL del mapa
-├── layouts/Layout.astro   → base HTML, meta tags, favicons, Google Fonts
+├── data/servicios.ts      → fuente unica de los 9 servicios y las etapas del 09
+├── layouts/Layout.astro   → base HTML, meta tags, Open Graph, Google Fonts
 ├── pages/index.astro      → unica pagina (landing single-page)
 └── styles/global.css      → Tailwind v4 + @theme tokens
 ```
 
 ### Datos reales
 
-- Direccion: Av. del Libertador 6328, Buenos Aires
+Todos confirmados el 2026-08-04, ya no queda ningun placeholder de contacto.
+
+- Direccion: **Av. del Libertador 6328, piso 5º of. 501 - C.A.B.A.**
 - Coordenadas: -34.55368, -58.45052 (Nominatim, Belgrano/Barrio Chino)
-- Telefono y email del header/footer son **placeholders**, falta confirmarlos
+- Telefono: **+54 9 11 5527-6746**. Lleva el **9** despues del 54 por ser celular;
+  sin eso `wa.me` no abre el chat.
+- Email: **info@escribaniatocagni.com.ar** — ojo, `.com.ar` mientras que el
+  dominio del sitio es `.com`. **No es un error**: se decidio con Ines, la
+  casilla no depende del dominio del sitio. Si rebotan mails, mirar esto primero.
+- Registro Notarial **N° 56** (CABA). Reemplazo a la "Matricula Profesional
+  N° XXXX" que era placeholder.
 - En `Contacto.astro` los datos son enlaces, no texto: direccion → Google Maps,
   telefono → `wa.me`, email → `mailto:`. El numero vive dos veces con formato
   distinto (`phoneDisplay` para mostrar, `phoneWhatsapp` solo digitos para
-  `wa.me`): **al reemplazar el placeholder hay que cambiar los dos.**
+  `wa.me`): **al cambiarlo hay que tocar los dos.**
   `wa.me` quiere codigo de pais y **sin el 15**: `+54 11 4444-5555` → `541144445555`
-- Matricula profesional en el footer es placeholder (`N° XXXX`)
+
+**Grafia de los ordinales**: la escribana pidio `Nº 56` y `piso 5º`, **sin punto**
+(no `N.º` ni `5.º`). Aplica a todo el sitio.
 
 ### Assets en `public/`
 
 | Archivo | Origen |
 |---------|--------|
 | `escribana.jpg` | Retrato 768x1024 provisto por el cliente (retocado) |
-| `favicon.ico` | Monograma ET, multi-resolucion 16/32/48 |
-| `favicon-32.png`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | mismo monograma |
+| `og.jpg` | Tarjeta social 1200x630, generada (ver abajo) |
 
-Los favicons se derivaron de un PNG de 1254x1254 recortando el monograma al 88%
-del tile (el original tenia ~46% de aire y a 32 px no se leia), con `unsharp` en
-los tamanos chicos. Si hay que regenerarlos, el recorte usado fue
+**No hay favicon** desde el 2026-08-04: la duena quiere elegir uno y el monograma
+ET quedo en pausa. Se borraron los cinco archivos y las cuatro etiquetas
+`<link rel=icon>`. **Sacar solo las etiquetas no alcanza**: el navegador pide
+`/favicon.ico` por su cuenta y lo usa igual, por eso se borraron los archivos.
+
+Para reponerlos: `git checkout <commit-previo-al-de-remocion> -- public/`, volver
+a poner las cuatro etiquetas en `Layout.astro` y el `logo` en `Schema.astro`.
+Los favicons viejos se derivaron de un PNG de 1254x1254 recortando el monograma
+al 88% del tile (el original tenia ~46% de aire y a 32 px no se leia), con
+`unsharp` en los tamanos chicos; el recorte fue
 `convert origen.png -crop 764x764+258+221`.
 
-`icon-512.png` pesa ~155 KB. Si molesta en el bundle, `pngquant` lo baja a ~20 KB.
+#### `og.jpg` — la tarjeta social
+
+1200x630, misma identidad que el hero: navy `#1a2940`, reglas doradas y la
+**Cinzel real** (se bajo el TTF de Google Fonts, no esta instalada en el sistema).
+Importa porque **WhatsApp es el canal principal del sitio** y sin `og:image` los
+links compartidos salian sin tarjeta. Van tambien `og:image:width/height`, que
+WhatsApp necesita para armar la preview.
+
+Si hay que regenerarla, el comando esta en el historial del commit que la
+agrego (`convert` con las dos Cinzel y las coordenadas de cada linea).
 
 ## Boton flotante de WhatsApp
 
@@ -243,8 +286,8 @@ Decisiones que no son obvias leyendo el markup:
 
 ## FAQ
 
-Seccion `#preguntas`, entre Servicios y Contacto. Acordeon de 8 preguntas
-numeradas 01-08, **sin JavaScript**: `<details>`/`<summary>` como en el menu
+Seccion `#preguntas`, entre Servicios y Contacto. Acordeon de 10 preguntas
+numeradas 01-10, **sin JavaScript**: `<details>`/`<summary>` como en el menu
 movil. Detalles que no se leen del markup:
 
 - `name="faq"` en cada `<details>` lo convierte en **acordeon exclusivo** nativo
@@ -259,20 +302,73 @@ movil. Detalles que no se leen del markup:
   no pueden desincronizarse. Es un bloque de datos, no JS ejecutable: el build
   sigue emitiendo 0 archivos `.js`.
 
-### Las respuestas son borrador
+### Las respuestas ya no son borrador
 
-Ninguna respuesta fue validada por la escribana. Cuatro tienen contenido
-sensible que hay que confirmar antes de publicar:
+Las 10 preguntas y respuestas las **escribio la propia escribana** (Word
+"PAGINA WEB", 2026-08-04). Reemplazaron por completo a las 8 de borrador que
+habia antes. **No reescribirlas sin consultarla**: es contenido legal, no copy.
 
-| # | Pregunta | Que confirmar |
-|---|----------|---------------|
-| 01 | Turnos | Si certificaciones es realmente por orden de llegada |
-| 04 | Inmueble en provincia | Redaccion de la competencia territorial (esta escrita como practica, no como regla legal, a proposito) |
-| 07 | Sucesiones | Limite entre lo judicial y lo notarial |
-| 03 | Gastos de escrituracion | Que no falte ni sobre ningun concepto |
+Lo unico que se toco fue puntuacion y ortografia: signos `¿` de apertura que
+faltaban, la respuesta 09 que llegaba cortada en "segur" → "segura", tildes que
+faltaban ("tramites" → "trámites"), y el imperativo de la 07 pasado a voseo
+("Debes concurrir" → "Debés concurrir") para no mezclar tuteo y voseo dentro de
+la misma respuesta. Mismo criterio en la bajada de la seccion.
+
+La pregunta 05 (inmueble fuera de CABA) dice que escrituran inmuebles de
+cualquier provincia y a la vez que la escritura se otorga en CABA. Leido rapido
+suena contradictorio, pero es correcto y **es su redaccion**: se dejo textual.
 
 Las respuestas son el corpus de grounding del chatbot de fase 2: por eso cada
 una es autocontenida y cubre un solo tema.
+
+## Servicios y la ficha 09
+
+Grilla de 9 servicios (01-09) en 3 columnas. El **09, Desarrollos Inmobiliarios,
+es el unico con ficha ampliada**: su tarjeta lleva un boton "Conoce mas" que
+despliega el detalle. Otro `<details>`, sin JavaScript.
+
+- **Solo el boton despliega, no la tarjeta.** El `<summary>` es clickeable por
+  definicion, asi que lleva `pointer-events: none` y se le devuelve el puntero
+  unicamente a `.dev-label`. No afecta al teclado: el summary sigue tomando foco
+  y Enter sigue abriendo.
+- **Abierta ocupa el ancho completo** (`.dev[open] { grid-column: 1 / -1 }`):
+  en un tercio de columna el detalle quedaba ilegible. Como es la **ultima**
+  tarjeta de la grilla, expandirse no reacomoda a ninguna otra. Si algun dia se
+  agrega un servicio 10, revisar esto.
+- El indicador `+`/`−` **se redefine en `Servicios.astro`**: los estilos de Astro
+  son scoped, no se puede reusar el `.faq-icon` de `Faq.astro`.
+- La lista "Nuestro acompanamiento comprende" va a **una sola columna a
+  proposito**. En dos columnas el navegador la llena de izquierda a derecha y se
+  pierde el orden del Word, que es el orden real de las etapas del proyecto.
+
+## SEO y structured data
+
+`Schema.astro` emite un JSON-LD con `@graph`: `WebSite`, el negocio como
+`LegalService` + `ProfessionalService`, y una `Person` para Ines con el Registro
+Notarial 56 como credencial.
+
+- **Por que importa**: sin esto Google sabe que hay una pagina, pero no que
+  detras hay una escribania, donde queda ni a que hora atiende. Es lo que
+  alimenta el panel lateral y el paquete local del mapa, y lo que leen los
+  agentes cuando alguien pregunta "escribania en Belgrano".
+- `LegalService` es lo mas especifico que schema.org tiene para una notaria —
+  **no existe un tipo `Notary`**. Por eso se suma `additionalType` apuntando al
+  concepto en Wikidata.
+- El `hasOfferCatalog` sale del mismo `data/servicios.ts` que pinta la grilla,
+  **por eso los servicios se mudaron a un archivo de datos**. Mismo criterio que
+  el `FAQPage`: la lista visible y la que leen los buscadores no pueden divergir.
+- Es un bloque de datos, no JS ejecutable: **el build sigue emitiendo 0 `.js`**.
+- No se puso `postalCode` porque nadie lo confirmo. Mejor omitirlo que inventarlo.
+
+### Pendiente, y no es codigo
+
+1. **Google Business Profile** — para una escribania de barrio pesa mas que todo
+   el SEO on-page junto. Lo tiene que hacer Ines con su cuenta y se verifica por
+   correo postal a la oficina: tarda una o dos semanas.
+2. **Google Search Console** — para mandar a indexar. El `sitemap.xml` ya esta
+   publicado y listo para enviar.
+3. **En Cloudflare**: `www.escribaniatocagni.com` **no resuelve** (falta un CNAME
+   a la raiz) y `http://` **no redirige** a `https://` (falta *Always Use HTTPS*).
 
 ## Fase 2 — Chatbot con Groq (pendiente)
 
