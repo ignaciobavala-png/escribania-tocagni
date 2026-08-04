@@ -4,10 +4,10 @@ import { phoneDisplay, whatsappUrl, email, mapsUrl } from '../data/contacto';
 const contactInfo = [
   {
     label: 'Dirección',
-    value: 'Av. del Libertador 6328, Buenos Aires',
+    value: 'Av. del Libertador 6328, piso 5.º oficina 501, C.A.B.A.',
     href: mapsUrl,
     external: true,
-    hint: 'Ver cómo llegar',
+    hint: 'Cómo llegar',
   },
   {
     label: 'Teléfono',
@@ -23,7 +23,7 @@ const contactInfo = [
   },
   {
     label: 'Horario',
-    value: 'Lunes a Viernes de 9 a 18 hs',
+    value: 'Lunes a viernes | 10 a 18 hs.',
   },
 ];
 ---
@@ -41,7 +41,7 @@ const contactInfo = [
           Estamos para<br />ayudarte
         </h2>
         <p class="text-white/30 text-base leading-relaxed max-w-sm">
-          Consultanos sin compromiso. Respondemos tus consultas con seriedad y discreción.
+          Contanos qué necesitás. Nosotros nos ocupamos del resto.
         </p>
       </div>
 
@@ -58,7 +58,11 @@ const contactInfo = [
                 class="contact-link inline-block text-white/70 text-base break-words"
               >
                 <span class="contact-value relative inline-block">{c.value}</span>
-                <span class="block mt-1 text-sm text-white/25 tracking-wide">{c.hint ?? 'Escribinos'}</span>
+                {/* Sin hint no se emite la linea: antes caia en un "Escribinos"
+                    por defecto que Ines pidio sacar del email. */}
+                {c.hint && (
+                  <span class="block mt-1 text-sm text-white/25 tracking-wide">{c.hint}</span>
+                )}
               </a>
             ) : (
               <p class="text-white/70 text-base break-words">{c.value}</p>
@@ -83,7 +87,7 @@ const contactInfo = [
         referrerpolicy="no-referrer-when-downgrade"
         src="https://maps.google.com/maps?q=-34.5537,-58.4505&amp;z=16&amp;hl=es&amp;output=embed"
         style="border:0; pointer-events: none;"
-        title="Av. del Libertador 6328, CABA"
+        title="Av. del Libertador 6328, piso 5.º of. 501, C.A.B.A."
         tabindex="-1"
         aria-hidden="true"
       >
@@ -110,7 +114,7 @@ const contactInfo = [
           &copy; {new Date().getFullYear()} Escribanía Tocagni. Todos los derechos reservados.
         </p>
         <p class="text-white/15 text-sm tracking-wide">
-          Matrícula Profesional N° XXXX
+          Registro Notarial N.º 56 · C.A.B.A.
         </p>
       </div>
     </div>

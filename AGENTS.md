@@ -1,4 +1,4 @@
-# AGENTS.md — escribania-tocagni
+# AGENTS.md — Escribanía Tocagni
 
 > Generado automáticamente por brain-agents-inject desde brain-data.
 > No editar manualmente — se sobreescribe al abrir Claude Code.
@@ -7,12 +7,12 @@
 
 | Campo | Valor |
 |-------|-------|
-| Nombre | escribania-tocagni |
-| Tipo | — |
-| Cliente | — |
+| Nombre | Escribanía Tocagni |
+| Tipo | Landing |
+| Cliente | Escribanía Tocagni |
 | Stack | Astro 7.1.6 + React 19.2.8 + Tailwind + Wrangler / Cloudflare + Cloudflare |
-| Estado | desconocido |
-| Último commit | — |
+| Estado | activo |
+| Último commit | 2026-07-30 |
 
 ## Perfil del desarrollador
 
@@ -110,6 +110,8 @@ Leer el archivo completo solo si la tarea actual lo requiere — esta lista es s
   Cuando hay una franja de texto que scrollea en loop (ticker de promos, "envío gratis", mensajes de marca) y el cliente reporta que **"se corta y deja de aparecer"**, o que el loop tiene un salto o un hueco. También al es…
 - **Chatbot FAQ grounded con AI SDK v5 + Groq (widget Q&A)** (`/home/nch/Escritorio/brain-data/skills/ai-sdk-chatbot-grounded/SKILL.md`)
   Al agregar un widget de preguntas frecuentes / asistente virtual a un sitio, cuando la respuesta debe estar **anclada a un FAQ oficial** (sin inventar datos) y el objetivo es un chat simple con streaming, no un agente co…
+- **Guardar en un drawer/modal sin propagar al listado — "guardo y sigue el valor viejo** (`/home/nch/Escritorio/brain-data/skills/drawer-guardar-sin-propagar-estado/SKILL.md`)
+  Cuando el cliente/admin reporta: **"edito, pongo guardar, dice guardado, y sigue apareciendo lo viejo. Después entro a la web, se refresca, y ahí sí cambió."** Aplica a cualquier panel donde una página Server Component t…
 - **Inputs decimales en es-AR — coma como separador y estado string** (`/home/nch/Escritorio/brain-data/skills/inputs-decimales-coma-es-ar/SKILL.md`)
   Siempre que un formulario React/Next.js tenga campos numéricos con decimales (dimensiones, peso, precios, porcentajes) para usuarios argentinos. Síntoma típico reportado por el usuario: **"el input no toma decimales"** —…
 - **Cloudflare D1 — Migraciones y patrones SQLite** (`/home/nch/Escritorio/brain-data/skills/cloudflare-d1-migrations/SKILL.md`)

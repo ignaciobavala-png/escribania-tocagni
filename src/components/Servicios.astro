@@ -1,11 +1,29 @@
 ---
+// Textos definitivos provistos por Inés (Word "PAGINA WEB", 2026-08-04).
 const services = [
-  { number: '01', title: 'Certificaciones', description: 'Autenticación de firmas, documentos y copias fieles con validez legal en todo el país.' },
-  { number: '02', title: 'Contratos y Escrituras', description: 'Redacción y protocolización de contratos civiles, comerciales, locaciones y poderes.' },
-  { number: '03', title: 'Trámites Societarios', description: 'Constitución de sociedades, modificaciones estatutarias, actas de directorio y asambleas.' },
-  { number: '04', title: 'Compraventa', description: 'Asesoramiento integral en operaciones inmobiliarias, estudios de título y escrituración.' },
-  { number: '05', title: 'Sucesiones', description: 'Planificacion patrimonial, declaratorias de herederos y tramitación de sucesiones.' },
-  { number: '06', title: 'Asesoramiento Notarial', description: 'Consultoría jurídica personalizada para particulares, empresas y estudios contables.' },
+  { number: '01', title: 'Certificaciones', description: 'Certificación de firmas ológrafas y digitales, autenticación de documentos y copias, legalizaciones y apostillas.' },
+  { number: '02', title: 'Operaciones inmobiliarias', description: 'Compraventas, donaciones, permutas, usufructos, hipotecas, reglamentos de propiedad horizontal, afectación y desafectación al Régimen de Protección de la Vivienda y demás actos sobre inmuebles.' },
+  { number: '03', title: 'Poderes y autorizaciones', description: 'Poderes generales y especiales, autorizaciones para viajar al exterior de menores de edad y para conducir vehículos.' },
+  { number: '04', title: 'Sociedades', description: 'Constitución de sociedades, rúbrica de libros, reformas estatutarias, designación de autoridades, cambios de sede, fusiones, escisiones, venta de acciones, cesión de cuotas sociales y demás trámites societarios.' },
+  { number: '05', title: 'Sucesiones', description: 'Declaratorias de herederos, cesiones de derechos hereditarios, tracto abreviado e inscripciones registrales.' },
+  { number: '06', title: 'Planificación patrimonial', description: 'Testamentos, donaciones y herramientas jurídicas para organizar y proteger tu patrimonio.' },
+  { number: '07', title: 'Fideicomisos', description: 'Constitución, modificación y extinción de fideicomisos civiles e inmobiliarios.' },
+  { number: '08', title: 'Actas notariales', description: 'Actas de constatación, notificación, intimación, inventario, sorteos, asambleas y demás actuaciones con valor probatorio.' },
+  { number: '09', title: 'Desarrollos inmobiliarios', description: 'Asesoramiento notarial integral para desarrolladores e inversores en todas las etapas del proyecto.' },
+];
+
+// El 09 es el único servicio con ficha ampliada: el Word pedía un "Conocé más"
+// que abriera el detalle. Es un <details>, mismo criterio que el FAQ y el menú
+// móvil — sin JavaScript.
+const desarrollos = [
+  'Adquisición del inmueble.',
+  'Estructuración jurídica del proyecto.',
+  'Constitución de sociedades y fideicomisos.',
+  'Adhesiones, boletos y cesiones.',
+  'Reglamentos de Propiedad Horizontal.',
+  'Escrituración de unidades.',
+  'Extinción de fideicomisos.',
+  'Inscripciones registrales.',
 ];
 ---
 
@@ -18,7 +36,7 @@ const services = [
     </p>
 
     <h2 class="font-serif text-4xl md:text-5xl text-primary leading-tight mb-10 md:mb-12 max-w-lg">
-      Soluciones notariales a tu medida
+      ¿Cómo podemos ayudarte?
     </h2>
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10">
@@ -43,10 +61,146 @@ const services = [
         </article>
       ))}
     </div>
+
+    <details class="dev mt-12 md:mt-16 border-t border-neutral-200">
+      <summary class="flex items-center gap-4 py-6 cursor-pointer select-none">
+        <span class="font-serif text-lg text-accent tabular-nums">09</span>
+        <span class="dev-label flex-1 text-base tracking-[0.2em] uppercase text-primary font-medium">
+          Desarrollos inmobiliarios — Conocé más
+        </span>
+        <span class="dev-icon" aria-hidden="true" />
+      </summary>
+
+      <div class="dev-body pb-4">
+        <div class="grid lg:grid-cols-12 gap-10 lg:gap-16 pt-2">
+          <div class="lg:col-span-5">
+            <h3 class="font-serif text-3xl md:text-4xl text-primary leading-tight mb-5">
+              Seguridad jurídica para proyectos que trascienden
+            </h3>
+            <p class="text-neutral-500 text-base leading-relaxed max-w-md">
+              Cada proyecto es único. Por eso, acompañamos a desarrolladores e inversores con una mirada integral, desde la estructuración jurídica hasta la escrituración de cada unidad.
+            </p>
+          </div>
+
+          <div class="lg:col-span-7">
+            <p class="text-sm tracking-[0.25em] uppercase text-neutral-400 mb-5 font-medium">
+              Nuestro acompañamiento comprende
+            </p>
+
+            <ul class="grid sm:grid-cols-2 gap-x-8">
+              {desarrollos.map((item) => (
+                <li class="flex gap-3 py-2.5 border-t border-neutral-200 text-neutral-500 text-base leading-relaxed">
+                  <span class="text-accent" aria-hidden="true">—</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-10 pt-8 border-t border-neutral-200 flex flex-col sm:flex-row sm:items-center gap-5 sm:justify-between">
+          <p class="text-neutral-500 text-base leading-relaxed max-w-xl">
+            <span class="text-primary font-medium">¿Tenés un proyecto en marcha?</span>
+            Será un gusto acompañarte en sus distintas etapas y brindarte el asesoramiento notarial que necesitás.
+          </p>
+
+          <a
+            href="#contacto"
+            class="inline-flex items-center justify-center gap-3 bg-primary hover:bg-primary-dark text-white font-medium px-8 py-4 text-base tracking-widest uppercase transition-colors duration-300 shrink-0"
+          >
+            Contactanos
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </details>
   </div>
 </section>
 
 <style>
+  /* --- Ficha ampliada de Desarrollos (09) ---
+     Los estilos de Astro son scoped, asi que el indicador +/- se redefine aca:
+     no se puede reusar el .faq-icon de Faq.astro. Misma cruz en CSS, y la barra
+     vertical colapsa con scaleY(0) al abrir.
+     OJO: no usar utilidades translate-* de Tailwind v4 en el icono — escriben la
+     propiedad `translate`, no `transform`, y el toggle deja de funcionar. */
+  .dev > summary {
+    list-style: none;
+  }
+
+  .dev > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .dev > summary:focus-visible {
+    outline: 1px solid var(--color-accent);
+    outline-offset: 4px;
+  }
+
+  .dev-icon {
+    position: relative;
+    flex: none;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .dev-icon::before,
+  .dev-icon::after {
+    content: '';
+    position: absolute;
+    background-color: var(--color-accent);
+  }
+
+  .dev-icon::before {
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+  }
+
+  .dev-icon::after {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    transition: transform 0.3s ease;
+  }
+
+  .dev[open] .dev-icon::after {
+    transform: scaleY(0);
+  }
+
+  .dev-label {
+    transition: color 0.3s ease;
+  }
+
+  .dev[open] .dev-label {
+    color: var(--color-accent-dark);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .dev > summary:hover .dev-label {
+      color: var(--color-accent-dark);
+    }
+  }
+
+  .dev[open] .dev-body {
+    animation: faq-reveal 0.35s ease both;
+  }
+
+  @keyframes faq-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(-0.375rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   .service {
     transition:
       transform 500ms ease-out,
@@ -149,6 +303,15 @@ const services = [
       animation: none !important;
       transition-duration: 1ms !important;
       transform: none !important;
+    }
+
+    .dev-icon::after,
+    .dev-label {
+      transition: none;
+    }
+
+    .dev[open] .dev-body {
+      animation: none;
     }
   }
 </style>

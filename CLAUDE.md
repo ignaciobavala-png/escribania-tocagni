@@ -72,12 +72,29 @@ Paleta refinada definida en `src/styles/global.css` via `@theme`:
 |-------|---------|-----|
 | `--font-serif` | Playfair Display | Headings, numeros de seccion |
 | `--font-sans` | Inter | Cuerpo, labels, nav |
-| `--font-roman` | Cinzel (fallback Trajan Pro) | **Solo** la firma de la escribana |
+| `--font-roman` | Cinzel (fallback Trajan Pro) | Marca del hero + firma de la escribana |
 
 Cinzel es una digitalizacion de la capital romana inscripcional (misma familia
-de formas que Trajan). Se usa en un unico lugar — el nombre bajo la foto en
-QuienesSomos — para evocar derecho romano y transmitir solidez. **No replicarla
-en otros elementos**: si se repite pierde el efecto y compite con Playfair.
+de formas que Trajan). Evoca derecho romano y transmite solidez. Se usa en
+**exactamente dos lugares, y los dos son la marca**:
+
+1. El bloque `Escribanía / TOCAGNI` del hero (`Hero.astro`)
+2. La firma `Inés Tocagni` bajo el retrato (`QuienesSomos.astro`)
+
+Decidido con la clienta el 2026-08-04. Pidio que "Tocagni" tuviera la misma
+tipografia que "Escribania", en mayuscula, "sin tanto borde redondeado, mas
+seriedad y elegancia". Se probaron las tres: Playfair (la serif del resto del
+sitio) e Inter en caja alta — Inter cumple lo de "misma tipografia" pero es
+geometrica y redonda, que es justo lo que no queria. Cinzel resuelve las tres
+cosas y ata el hero con la firma.
+
+**No extenderla a headings de seccion ni a cuerpo de texto**: esos siguen siendo
+Playfair e Inter. Si Cinzel aparece en un tercer lugar deja de leerse como marca.
+
+Detalle: las capitales inscripcionales necesitan aire entre letras o se
+empastan, por eso el `h1` lleva `tracking-[0.08em]`. El tamano quedo en
+`5xl / 6xl / 5rem` (no `8xl` como cuando era Playfair en caja baja: la caja alta
+ocupa mucho mas ancho).
 
 ### Reglas de diseno
 
