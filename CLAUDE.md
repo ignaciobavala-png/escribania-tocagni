@@ -14,9 +14,11 @@ sucesiones, asesoramiento notarial.
 
 Escribana titular: **Ines Tocagni**.
 
-> El apellido correcto es **Tocagni**. El sitio y el Worker ya usan esa grafia.
-> Siguen diciendo "togcani" solo el nombre del directorio del repo y el `name` de
-> `package.json`: cosmeticos, no afectan al deploy.
+> El apellido correcto es **Tocagni**. Unificado el 2026-08-04: sitio, Worker,
+> directorio del repo y `name` de `package.json` usan todos esa grafia. Si
+> aparece "togcani" en algun lado, es un rastro viejo (el diario de brain-data
+> registra asi las sesiones anteriores a esa fecha, porque toma el nombre de la
+> carpeta).
 
 ## Stack
 
