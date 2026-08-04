@@ -19,16 +19,24 @@ import Header from './Header.astro';
         <div class="max-w-4xl py-12 md:py-16 mx-auto text-center">
           <div class="w-16 h-px bg-accent mb-10 mx-auto" />
 
-          <p class="text-white/40 text-sm md:text-base tracking-[0.3em] uppercase mb-6 font-medium">
-            Escribanía
-          </p>
-
-          <h1 class="font-serif text-5xl sm:text-6xl md:text-8xl text-white leading-none tracking-tight mb-6">
-            Tocagni
+          <!--
+            Los dos renglones de la marca viven dentro del mismo <h1>: el h1 es
+            la segunda senal semantica de la pagina y "Tocagni" solo no dice que
+            esto es una escribania. Los <span> son block, asi que el render es
+            identico al que tenia el <p> separado.
+          -->
+          <h1 class="mb-6">
+            <span class="block font-roman text-white/40 text-sm md:text-base tracking-[0.3em] uppercase mb-6">
+              Escribanía
+            </span>
+            <span class="block font-roman text-5xl sm:text-6xl md:text-[5rem] text-white uppercase leading-none tracking-[0.08em]">
+              Tocagni
+            </span>
           </h1>
 
           <p class="text-white/50 text-lg md:text-xl max-w-xl mx-auto leading-relaxed mb-10 font-light">
-            Seguridad jurídica y confianza en cada acto notarial. Dos décadas de excelencia al servicio de nuestros clientes.
+            Detrás de cada firma hay una historia.<br />
+            Cada decisión merece ser bien acompañada.
           </p>
 
           <div class="flex flex-col sm:flex-row gap-3 justify-center">

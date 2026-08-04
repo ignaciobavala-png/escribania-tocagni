@@ -8,9 +8,14 @@ import Contacto from '../components/Contacto.astro';
 import WhatsappFab from '../components/WhatsappFab.astro';
 ---
 
+<!--
+  El title lleva marca + servicio + zona porque asi es como se busca una
+  escribania ("escribania belgrano", no "escribania tocagni"). 54 caracteres,
+  entra entero en el resultado de Google. La description, 155.
+-->
 <Layout
-  title="Escribanía Tocagni"
-  description="Escribanía con más de 20 años de experiencia. Asesoramiento notarial, certificaciones, contratos y trámites."
+  title="Escribanía Tocagni — Escribana en Belgrano, Buenos Aires"
+  description="Escribanía en Av. del Libertador 6328, Belgrano. Certificaciones, compraventa de inmuebles, sucesiones, sociedades y fideicomisos. Turnos por WhatsApp."
 >
   <main>
     <Hero />
