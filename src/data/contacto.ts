@@ -13,5 +13,9 @@ export const phoneWhatsapp = '5491155276746';
 export const whatsappMessage = 'Hola, quisiera hacer una consulta.';
 export const whatsappUrl = `https://wa.me/${phoneWhatsapp}?text=${encodeURIComponent(whatsappMessage)}`;
 
+// El dominio del sitio es .com (no se consiguio el .com.ar), pero el email
+// queda en .com.ar a pedido de Ines: asi lo escribio en el Word. NO es un
+// descuido — la casilla no depende del dominio del sitio. Si algun dia rebotan
+// los mails de clientes, revisar esto primero.
 export const email = 'info@escribaniatocagni.com.ar';
 export const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=-34.5537,-58.4505';

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://escribaniatocagni.com.ar/sitemap.xml
+Sitemap: https://escribaniatocagni.com/sitemap.xml
