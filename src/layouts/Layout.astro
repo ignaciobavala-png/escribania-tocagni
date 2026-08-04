@@ -23,10 +23,13 @@ const imageUrl = image ? new URL(image, Astro.site) : undefined;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
-    <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
-    <link rel="icon" type="image/png" href="/icon-192.png" sizes="192x192" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    {/* Sin favicon a proposito (2026-08-04): el monograma ET queda en pausa
+        hasta que la escribana elija uno. Los archivos se borraron de public/
+        —no alcanza con sacar estos <link>, porque el navegador pide igual
+        /favicon.ico por su cuenta y lo usaria—. Estan en el historial de git,
+        se recuperan con: git checkout <commit-anterior> -- public/
+        Al reponerlos hay que volver a poner estas cuatro etiquetas y el `logo`
+        del schema en Schema.astro. */}
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
