@@ -1,6 +1,16 @@
 {
   "name": "escribania-tocagni",
   "compatibility_date": "2026-07-29",
+  // Los dos hostnames son custom domains del Worker: al deployar, Cloudflare
+  // crea y gestiona los registros DNS solo. Sin la entrada de `www` esa
+  // peticion no encuentra origen y devuelve 522.
+  // Declarar `routes` apaga workers.dev por defecto; se reactiva a mano porque
+  // esa URL es la que no pasa por el CDN y sirve para verificar deploys.
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "escribaniatocagni.com", "custom_domain": true },
+    { "pattern": "www.escribaniatocagni.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./dist"
   },

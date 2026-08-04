@@ -61,6 +61,22 @@ unica: de ahi salen el canonical, las etiquetas `og:` y el `@id` del schema.
 
 URL vieja, sigue respondiendo: `https://escribania-tocagni.ethoslogliberty.workers.dev`
 
+### Los dominios se declaran en `wrangler.jsonc`
+
+Apex y `www` son los dos custom domains del Worker y viven en el array `routes`
+con `custom_domain: true`. Al deployar, **Cloudflare crea y gestiona los
+registros DNS solo** — no hay que tocar el panel de DNS.
+
+- `www` daba **522** cuando era un CNAME hecho a mano: el registro resolvia, pero
+  como el hostname no estaba registrado en el Worker, Cloudflare buscaba un
+  servidor de origen que no existe. Un CNAME a la raiz no alcanza; el hostname
+  tiene que estar en `routes`.
+- **`workers_dev: true` esta puesto a proposito.** Declarar `routes` apaga
+  workers.dev por defecto y la URL empieza a dar 404 — justo la que sirve para
+  verificar deploys sin CDN de por medio.
+- No hay redirect de `www` al apex: los dos sirven el mismo HTML y el
+  `<link rel="canonical">` le dice a Google cual es la buena.
+
 Cuenta Cloudflare: `ethoslogliberty@gmail.com` (Neo Nach).
 
 > **Cache**: el dominio esta detras del CDN de Cloudflare. Despues de un deploy
@@ -367,8 +383,11 @@ Notarial 56 como credencial.
    correo postal a la oficina: tarda una o dos semanas.
 2. **Google Search Console** — para mandar a indexar. El `sitemap.xml` ya esta
    publicado y listo para enviar.
-3. **En Cloudflare**: `www.escribaniatocagni.com` **no resuelve** (falta un CNAME
-   a la raiz) y `http://` **no redirige** a `https://` (falta *Always Use HTTPS*).
+3. **En Cloudflare**: `http://` **no redirige** a `https://`. El toggle
+   *Always Use HTTPS* ya no vive en SSL/TLS → Edge Certificates en el panel
+   nuevo: esta en **Rules → Settings**, o se crea con la plantilla de regla
+   "Redirigir de HTTP a HTTPS" sin configurar nada. No tiene equivalente en
+   `wrangler.jsonc`, hay que hacerlo a mano.
 
 ## Fase 2 — Chatbot con Groq (pendiente)
 
