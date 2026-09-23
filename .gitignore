@@ -16,12 +16,16 @@ pnpm-debug.log*
 # environment variables
 .env
 .env.production
+# secretos del Worker para dev local (DEEPSEEK_API_KEY). Nunca al repo.
+.dev.vars
 
 # macOS-specific files
 .DS_Store
 
 # wrangler
 .wrangler/
+# tipos generados por `wrangler types` (550 KB); se regeneran en dev/build
+worker-configuration.d.ts
 
 # claude
 .claude/

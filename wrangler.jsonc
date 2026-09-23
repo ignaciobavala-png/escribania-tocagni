@@ -1,5 +1,8 @@
 {
   "name": "escribania-tocagni",
+  // Entrypoint unificado del adapter de Cloudflare (Astro 6+). Maneja tanto
+  // `astro dev` como el deploy; NO apuntar a un archivo del build.
+  "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2026-07-29",
   // Los dos hostnames son custom domains del Worker: al deployar, Cloudflare
   // crea y gestiona los registros DNS solo. Sin la entrada de `www` esa
@@ -11,9 +14,8 @@
     { "pattern": "escribaniatocagni.com", "custom_domain": true },
     { "pattern": "www.escribaniatocagni.com", "custom_domain": true }
   ],
-  "assets": {
-    "directory": "./dist"
-  },
+  // El bloque `assets` ya no vive aca: con el adapter v14 lo genera el build
+  // a partir del output de Astro (ver dist/server/wrangler.json).
   "observability": {
     "enabled": true
   }

@@ -6,7 +6,10 @@ import Servicios from '../components/Servicios.astro';
 import Faq from '../components/Faq.astro';
 import Contacto from '../components/Contacto.astro';
 import Schema from '../components/Schema.astro';
-import WhatsappFab from '../components/WhatsappFab.astro';
+import ChatWidget from '../components/ChatWidget.tsx';
+// Las sugerencias se resuelven en el server y viajan como prop serializada:
+// el system prompt (agente.ts) nunca entra al bundle del cliente.
+import { preguntasSugeridas } from '../data/agente';
 ---
 
 <!--
@@ -27,6 +30,6 @@ import WhatsappFab from '../components/WhatsappFab.astro';
     <Contacto />
   </main>
 
-  <WhatsappFab />
+  <ChatWidget client:idle sugerencias={preguntasSugeridas} />
   <Schema />
 </Layout>

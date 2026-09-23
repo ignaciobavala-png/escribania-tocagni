@@ -6,17 +6,21 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
+    "types": "wrangler types",
+    "dev": "wrangler types && astro dev",
+    "build": "wrangler types && astro build",
+    "preview": "wrangler types && astro preview",
     "astro": "astro"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "^3.0.51",
+    "@ai-sdk/react": "^4.0.115",
     "@astrojs/cloudflare": "^14.1.7",
     "@astrojs/react": "^6.0.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "ai": "^7.0.112",
     "astro": "^7.1.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

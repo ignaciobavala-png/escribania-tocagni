@@ -34,16 +34,19 @@ patrimonial, fideicomisos, actas notariales y desarrollos inmobiliarios.
 | Package | pnpm |
 | Lenguaje | TypeScript strict |
 
-**0 JS en el cliente.** El unico asset generado es un `.css`. Cualquier feature
-nueva se resuelve con HTML + CSS antes de considerar JavaScript (ver el menu
-movil como ejemplo). El `dist` pesa ~384 KB, de los cuales ~300 KB son imagenes.
+**Casi 0 JS en el cliente.** Salvo la isla del chatbot (`ChatWidget.tsx`, ver
+"Chatbot" mas abajo), cualquier feature nueva se resuelve con HTML + CSS antes
+de considerar JavaScript (ver el menu movil como ejemplo). El `dist` pesa
+~384 KB, de los cuales ~300 KB son imagenes.
 
-### Dependencias instaladas (sin usar aun)
+### Dependencias
 
-- `@astrojs/react` + `react` / `react-dom` — para el chatbot futuro
-- `@astrojs/cloudflare` — para SSR/API routes cuando se agregue el chatbot
+- `@astrojs/react` + `react` / `react-dom` — la isla del chatbot (`ChatWidget.tsx`).
+- `@astrojs/cloudflare` — adapter para la ruta on-demand `/api/chat`. El resto
+  de las paginas sigue pre-renderizado a estatico.
+- `ai` + `@ai-sdk/react` + `@ai-sdk/deepseek` — el chat (ver "Chatbot").
 
-**No removerlas**, son necesarias para la fase 2 (chatbot con Groq).
+No removerlas: sin el adapter no hay endpoint y sin React no hay isla.
 
 ## Deploy
 
@@ -156,7 +159,8 @@ para que el copyright quede contra el borde inferior de la pagina.
 src/
 ├── components/
 │   ├── Header.astro       → nav + menu movil <details> (sin wordmark ni telefono)
-│   ├── WhatsappFab.astro  → boton flotante solo-icono, esquina inferior derecha
+│   ├── WhatsappFab.astro  → FAB viejo; ya no se importa (ver "Chatbot")
+│   ├── ChatWidget.tsx     → isla React: launcher + panel del asistente
 │   ├── Hero.astro         → marca centrada en Cinzel caja alta, regla dorada
 │   ├── QuienesSomos.astro → 2 columnas: texto (7/12) | retrato + firma (5/12)
 │   ├── Servicios.astro    → grilla numerada 01-09, hover/scroll-reveal en CSS
@@ -165,6 +169,9 @@ src/
 │   └── Schema.astro       → JSON-LD del negocio (no renderiza nada visible)
 ├── data/contacto.ts       → fuente unica de telefono, email y URL del mapa
 ├── data/servicios.ts      → fuente unica de los 9 servicios y las etapas del 09
+├── data/faqs.ts           → fuente unica de las 10 FAQ (acordeon + corpus del bot)
+├── data/agente.ts         → buildSystemPrompt() del chatbot
+├── pages/api/chat.ts      → endpoint on-demand del chat (DeepSeek)
 ├── layouts/Layout.astro   → base HTML, meta tags, Open Graph, Google Fonts
 ├── pages/index.astro      → unica pagina (landing single-page)
 └── styles/global.css      → Tailwind v4 + @theme tokens
@@ -222,15 +229,22 @@ WhatsApp necesita para armar la preview.
 Si hay que regenerarla, el comando esta en el historial del commit que la
 agrego (`convert` con las dos Cinzel y las coordenadas de cada linea).
 
-## Boton flotante de WhatsApp
+## Boton flotante de WhatsApp (removido en la rama `chatbot`)
 
-`WhatsappFab.astro`, `fixed bottom-right`, `z-40`. Solo el isotipo, sin texto:
-el CTA "Consultar" ya esta en el header y repetir la palabra abarataba la pieza.
+El sitio ya no muestra el `WhatsappFab`: el launcher del chatbot ocupa esa
+esquina (`fixed bottom-right`) y el propio panel ofrece la derivacion con el
+link "¿Preferis hablar con una persona? WhatsApp". El componente
+`WhatsappFab.astro` **sigue en el repo pero ya no se importa** (por si se quiere
+volver atras). Historia del FAB, por si se repone:
 
+- `fixed bottom-right`, `z-40`. Solo el isotipo, sin texto: el CTA "Consultar"
+  ya esta en el header y repetir la palabra abarataba la pieza.
 - El verde de marca (`#25D366`) es neon y rompia la paleta. Se usa
   `--color-whatsapp: #1e6b4f`, mismo matiz pero con el valor bajo del navy.
   La sombra tambien es fria (`rgb(26 41 64 / .55)`), no el gris de un FAB generico.
 - Cuadrado, sin `rounded`: **en toda la pagina no hay una sola esquina redondeada.**
+  (Excepcion deliberada: el widget del chatbot, que usa `rounded-2xl` para
+  sentirse como una caja de chat. El resto del sitio sigue a 90°.)
 - El mensaje precargado sale de `whatsappMessage` en `data/contacto.ts`.
 - Chocaba con el boton "Ver en el mapa", que estaba `bottom-right` en la franja
   del mapa: **ese boton se movio a `bottom-left`.** Si se agrega otro elemento
@@ -282,8 +296,9 @@ Decisiones que no son obvias leyendo el markup:
   asi que es su bloque contenedor). El `<style>` scoped oculta el marker nativo
   y alterna hamburguesa/cruz con `.menu[open]`. **No reemplazar por JS.**
 - **El telefono ya no esta en el header.** La accion principal en movil es el
-  FAB de WhatsApp, siempre visible. El boton "Consultar" aparece desde `sm`;
-  abajo de eso vive dentro del menu.
+  launcher del chatbot (esquina inferior derecha), siempre visible; el panel del
+  asistente ofrece la derivacion a WhatsApp. El boton "Consultar" aparece desde
+  `sm`; abajo de eso vive dentro del menu.
 - **El header no tiene wordmark**: el nombre ya esta en el `h1` del hero, justo
   debajo. Como el `<header>` es `absolute` y se va con el scroll, no hay ningun
   momento en que la marca haga falta ahi. En movil eso deja el lado izquierdo
@@ -389,17 +404,56 @@ Notarial 56 como credencial.
    "Redirigir de HTTP a HTTPS" sin configurar nada. No tiene equivalente en
    `wrangler.jsonc`, hay que hacerlo a mano.
 
-## Fase 2 — Chatbot con Groq (pendiente)
+## Chatbot (rama `chatbot`, local)
 
-Cuando se implemente el chatbot:
+Asistente de soporte flotante que responde con la informacion del sitio. **Solo
+en local por ahora: no esta deployado.**
 
-1. Re-agregar `@astrojs/react` al `astro.config.mjs` (ya esta instalado)
-2. Re-agregar `@astrojs/cloudflare` al `astro.config.mjs` (output: "server")
-3. Crear API endpoint para el chat (Worker handler o Astro API route)
-4. Crear componente React `ChatWidget.tsx` con `useChat` de AI SDK v5
-5. Agregar env secret: `wrangler secret put GROQ_API_KEY`
+### Arquitectura
 
-Referencia: skill `ai-sdk-chatbot-grounded` en brain-data.
+- Proveedor: **DeepSeek** via AI SDK v7 (`ai` + `@ai-sdk/react` + `@ai-sdk/deepseek`).
+  Modelo: **`deepseek-flash`**. Ojo: DeepSeek retiro los alias `deepseek-chat` y
+  `deepseek-reasoner` (24/07/2026); el vigente es `deepseek-flash`.
+- El sitio sigue **pre-renderizado**: se agrego el adapter de Cloudflare y la
+  unica ruta on-demand es `/api/chat` (`export const prerender = false`). No se
+  paso a `output: "server"`.
+- El `wrangler.jsonc` ahora lleva `main: "@astrojs/cloudflare/entrypoints/server"`
+  y **ya no tiene el bloque `assets`**: lo genera el build. Despues de tocar
+  `wrangler.jsonc` hay que **rebuildear** (el deploy lee `dist/server/wrangler.json`).
+
+### Archivos
+
+| Archivo | Rol |
+|---|---|
+| `src/data/faqs.ts` | Las 10 FAQ (fuente unica: acordeon + JSON-LD + corpus del bot) |
+| `src/data/agente.ts` | `buildSystemPrompt()`: arma el prompt desde `servicios`, `faqs` y `contacto` |
+| `src/pages/api/chat.ts` | Endpoint: `streamText` con `deepseek-flash`, topes de historial y largo |
+| `src/components/ChatWidget.tsx` | Isla React: launcher cuadrado + panel, con `useChat` |
+
+El corpus **no se escribe a mano**: sale de los mismos archivos que pintan la
+pagina, asi que el bot no puede decir algo que la web no diga.
+
+### Secret
+
+- Local: `.dev.vars` (gitignored) con `DEEPSEEK_API_KEY=...`. Sin la key, el
+  endpoint devuelve 500 con un mensaje explicito (no queda mudo).
+- Produccion (cuando se deploye): `wrangler secret put DEEPSEEK_API_KEY`.
+- El endpoint lee la key de `import { env } from 'cloudflare:workers'` (no
+  `Astro.locals.runtime.env`, removido en Astro 6).
+
+### Dev
+
+El dev server del adapter corre en `workerd`. Si lo levanta un agente hay que
+saltear el logger JSON: `ASTRO_DEV_BACKGROUND=1 pnpm dev`. Los scripts `dev`,
+`build` y `preview` corren `wrangler types` primero (genera
+`worker-configuration.d.ts`, gitignored).
+
+Referencia: skill `ai-sdk-chatbot-grounded` en brain-data (adaptada de Groq a DeepSeek).
+
+### Pendiente
+
+- Rate limiting de Cloudflare sobre `/api/chat` (endpoint publico y pago).
+- Evaluar `session: false` para no provisionar el KV que el adapter crea solo.
 
 ## Desarrollo
 
