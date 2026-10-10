@@ -12,14 +12,15 @@ import ChatWidget from '../components/ChatWidget.tsx';
 import { preguntasSugeridas } from '../data/agente';
 ---
 
-<!--
+{/*
   El title lleva marca + servicio + zona porque asi es como se busca una
-  escribania ("escribania belgrano", no "escribania tocagni"). 54 caracteres,
-  entra entero en el resultado de Google. La description, 155.
--->
+  escribania ("escribania belgrano", no "escribania tocagni"). Apunta a
+  "Belgrano y Nunez" porque la sede (Libertador 6328) esta en el limite de los
+  dos barrios y la gente busca cualquiera de los dos.
+*/}
 <Layout
-  title="Escribanía Tocagni — Escribana en Belgrano, Buenos Aires"
-  description="Escribanía en Av. del Libertador 6328, Belgrano. Certificaciones, compraventa de inmuebles, sucesiones, sociedades y fideicomisos. Turnos por WhatsApp."
+  title="Escribanía Tocagni — Escribana en Belgrano y Núñez, CABA"
+  description="Escribanía en Belgrano y Núñez, CABA. Certificaciones, compraventa de inmuebles, sucesiones, sociedades y fideicomisos. Turnos por WhatsApp."
   image="/og.jpg"
 >
   <main>

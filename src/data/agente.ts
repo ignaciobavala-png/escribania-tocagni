@@ -14,11 +14,13 @@ import { phoneDisplay, phoneWhatsapp, email } from './contacto';
 
 export const AGENT_NAME = 'Asistente';
 
-// Hechos confirmados por la escribana (ver CLAUDE.md > Datos reales).
-const TRAYECTORIA = 'más de diez años de trayectoria';
-const REGISTRO = 'Registro Notarial Nº 56';
-const DIRECCION = 'Av. del Libertador 6328, piso 5º of. 501, Belgrano, Ciudad Autónoma de Buenos Aires';
-const HORARIO = 'lunes a viernes de 10 a 18 hs.';
+// Hechos confirmados por la escribana (ver CLAUDE.md > Datos reales). Se
+// exportan porque tambien alimentan /llms.txt: el asistente y la ficha que leen
+// las IA no pueden decir cosas distintas.
+export const TRAYECTORIA = 'más de diez años de trayectoria';
+export const REGISTRO = 'Registro Notarial Nº 56';
+export const DIRECCION = 'Av. del Libertador 6328, piso 5º of. 501, Núñez, Ciudad Autónoma de Buenos Aires (a metros del límite con Belgrano)';
+export const HORARIO = 'lunes a viernes de 10 a 18 hs.';
 
 // Preguntas que se ofrecen como atajos en el estado vacio del widget.
 export const preguntasSugeridas = [

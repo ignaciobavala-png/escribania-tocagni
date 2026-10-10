@@ -9,9 +9,9 @@ const navLinks = [
 
 <header class="absolute top-0 left-0 right-0 z-50">
   <div class="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between gap-4">
-    <!-- Sin wordmark: el nombre ya está en el h1 del hero, justo debajo.
+    {/* Sin wordmark: el nombre ya está en el h1 del hero, justo debajo.
          El <header> es absolute y se va con el scroll, así que no queda
-         ningún momento en que la marca haga falta acá. -->
+         ningún momento en que la marca haga falta acá. */}
     <div class="flex items-center gap-10">
       <nav class="hidden lg:flex items-center gap-6">
         {navLinks.map((link) => (
@@ -26,8 +26,8 @@ const navLinks = [
     </div>
 
     <div class="flex items-center gap-4 lg:gap-6">
-      <!-- El teléfono salió de acá: la acción principal ahora es el FAB de
-           WhatsApp, siempre visible en la esquina inferior derecha. -->
+      {/* El teléfono salió de acá: la acción principal ahora es el FAB de
+           WhatsApp, siempre visible en la esquina inferior derecha. */}
       <a
         href="#contacto"
         class="hidden sm:inline-flex text-white border border-accent/30 hover:border-accent/60 hover:text-accent font-medium px-5 py-2 text-sm tracking-widest uppercase transition-colors duration-300"
@@ -35,7 +35,7 @@ const navLinks = [
         Consultar
       </a>
 
-      <!-- Menú móvil sin JS: <details> nativo -->
+      {/* Menú móvil sin JS: <details> nativo */}
       <details class="menu lg:hidden">
         <summary class="text-white p-1 cursor-pointer" aria-label="Abrir menú">
           <svg class="menu-open w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">

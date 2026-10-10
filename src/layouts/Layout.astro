@@ -23,6 +23,15 @@ const imageUrl = image ? new URL(image, Astro.site) : undefined;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* Indexacion explicita + vista previa de imagen grande (mejora la tarjeta
+        en Google Discover y resultados enriquecidos). */}
+    <meta
+      name="robots"
+      content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+    />
+    {/* El banner del hero es el LCP: se pide apenas se parsea el <head>, sin
+        esperar a que el CSS de la seccion lo descubra. */}
+    <link rel="preload" as="image" href="/hero-banner.webp" />
     {/* Sin favicon a proposito (2026-08-04): el monograma ET queda en pausa
         hasta que la escribana elija uno. Los archivos se borraron de public/
         —no alcanza con sacar estos <link>, porque el navegador pide igual

@@ -10,19 +10,38 @@
         <h2 class="font-serif text-4xl md:text-5xl text-primary leading-tight mb-8">
           Una escribanía cercana<br />y comprometida
         </h2>
-        <p class="text-neutral-500 text-lg leading-relaxed mb-5 max-w-2xl">
+        <p class="text-neutral-500 text-lg md:text-xl leading-relaxed mb-6 max-w-2xl">
           Creemos que el asesoramiento notarial debe ser claro, ágil y personalizado.
         </p>
-        <p class="text-neutral-500 text-lg leading-relaxed mb-5 max-w-2xl">
+        <p class="text-neutral-500 text-lg md:text-xl leading-relaxed mb-6 max-w-2xl">
           Desde hace más de diez años acompañamos a personas y empresas en las decisiones más importantes de sus vidas, brindando seguridad jurídica con profesionalismo y compromiso.
         </p>
-        <p class="text-neutral-500 text-lg leading-relaxed max-w-2xl">
+        <p class="text-neutral-500 text-lg md:text-xl leading-relaxed max-w-2xl">
           Detrás de cada firma hay una historia. Y cada historia importa.
         </p>
+
+        <div class="mt-10 pt-8 border-t border-neutral-200 max-w-2xl">
+          <p class="font-roman text-xl md:text-2xl uppercase tracking-[0.12em] text-primary leading-snug">
+            Inés Tocagni
+          </p>
+          <p class="mt-2 text-sm tracking-[0.25em] uppercase text-neutral-400 font-medium">
+            Escribana titular
+          </p>
+          <p class="mt-1 text-sm tracking-[0.25em] uppercase text-neutral-400 font-medium leading-relaxed">
+            Registro Notarial Nº 56 · Ciudad Autónoma de Buenos Aires
+          </p>
+        </div>
       </div>
 
-      <div class="lg:col-span-5">
-        <figure class="max-w-md lg:ml-auto">
+      {/*
+        La foto antes era mas alta que el copy y dejaba un hueco grande abajo a
+        la izquierda. En desktop la figura se saca del flujo (absolute inset-y-0)
+        y toma la altura exacta de la columna de texto; con aspect-[3/4] el ancho
+        sale solo y la imagen entra entera, sin recorte. El pie (nombre y
+        registro) va en la columna de texto para no tapar la foto.
+      */}
+      <div class="relative lg:col-span-5 lg:min-h-[420px]">
+        <figure class="relative mx-auto w-full max-w-md lg:absolute lg:inset-y-0 lg:right-0 lg:mx-0 lg:w-auto lg:aspect-[3/4]">
           <img
             src="/escribana.jpg"
             alt="Inés Tocagni, escribana titular"
@@ -30,19 +49,8 @@
             height="1024"
             loading="lazy"
             decoding="async"
-            class="w-full aspect-[3/4] object-cover"
+            class="w-full h-full aspect-[3/4] object-cover lg:aspect-auto"
           />
-          <figcaption class="mt-5 pt-4 border-t border-neutral-200">
-            <p class="font-roman text-xl md:text-2xl uppercase tracking-[0.12em] text-primary leading-snug">
-              Inés Tocagni
-            </p>
-            <p class="mt-2.5 text-sm tracking-[0.25em] uppercase text-neutral-400 font-medium">
-              Escribana titular
-            </p>
-            <p class="mt-2 text-sm tracking-[0.25em] uppercase text-neutral-400 font-medium leading-relaxed">
-              Registro Notarial Nº 56 · Ciudad Autónoma de Buenos Aires
-            </p>
-          </figcaption>
         </figure>
       </div>
     </div>

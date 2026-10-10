@@ -177,6 +177,13 @@ src/
 └── styles/global.css      → Tailwind v4 + @theme tokens
 ```
 
+### Bloque de contacto
+
+Grilla de dos columnas con **direccion y email a fila completa** (`wide` en
+`contactInfo`), y telefono y horario compartiendo la del medio. En media columna
+el email largo desbordaba sobre el horario, y cortado en dos se leia raro.
+El `<wbr>` despues de la `@` queda como reserva para celulares de 360 px o menos.
+
 ### Datos reales
 
 Todos confirmados el 2026-08-04, ya no queda ningun placeholder de contacto.
@@ -185,7 +192,8 @@ Todos confirmados el 2026-08-04, ya no queda ningun placeholder de contacto.
 - Coordenadas: -34.55368, -58.45052 (Nominatim, Belgrano/Barrio Chino)
 - Telefono: **+54 9 11 5527-6746**. Lleva el **9** despues del 54 por ser celular;
   sin eso `wa.me` no abre el chat.
-- Email: **info@escribaniatocagni.com.ar** — ojo, `.com.ar` mientras que el
+- Email: **administracion@escribaniatocagni.com.ar** (era `info@` hasta el
+  2026-09-27, Ines confirmo `administracion@`) — ojo, `.com.ar` mientras que el
   dominio del sitio es `.com`. **No es un error**: se decidio con Ines, la
   casilla no depende del dominio del sitio. Si rebotan mails, mirar esto primero.
 - Registro Notarial **N° 56** (CABA). Reemplazo a la "Matricula Profesional
@@ -396,6 +404,12 @@ Notarial 56 como credencial.
 1. **Google Business Profile** — para una escribania de barrio pesa mas que todo
    el SEO on-page junto. Lo tiene que hacer Ines con su cuenta y se verifica por
    correo postal a la oficina: tarda una o dos semanas.
+   Al 2026-10-10, buscar "escribania tocagni" en Maps no la encuentra. Aparece
+   su **estudio anterior, "Marta S. Sengiali" (Reconquista 365)**, que ya no
+   existe y que Ines quiere sacar. **Esa ficha no la controla nadie** (no fue
+   reclamada), asi que el plan es: sugerir en Maps "Cerrado permanentemente"
+   para la vieja y crear una ficha nueva para Libertador 6328. Reclamarla para
+   mudarla no sirve: la verificacion postal iria a Reconquista 365.
 2. **Google Search Console** — para mandar a indexar. El `sitemap.xml` ya esta
    publicado y listo para enviar.
 3. **En Cloudflare**: `http://` **no redirige** a `https://`. El toggle
@@ -404,10 +418,10 @@ Notarial 56 como credencial.
    "Redirigir de HTTP a HTTPS" sin configurar nada. No tiene equivalente en
    `wrangler.jsonc`, hay que hacerlo a mano.
 
-## Chatbot (rama `chatbot`, local)
+## Chatbot
 
-Asistente de soporte flotante que responde con la informacion del sitio. **Solo
-en local por ahora: no esta deployado.**
+Asistente de soporte flotante que responde con la informacion del sitio. **En produccion**
+(confirmado el 2026-10-10: el sitio sirve el widget y el secret esta cargado).
 
 ### Arquitectura
 
@@ -437,7 +451,7 @@ pagina, asi que el bot no puede decir algo que la web no diga.
 
 - Local: `.dev.vars` (gitignored) con `DEEPSEEK_API_KEY=...`. Sin la key, el
   endpoint devuelve 500 con un mensaje explicito (no queda mudo).
-- Produccion (cuando se deploye): `wrangler secret put DEEPSEEK_API_KEY`.
+- Produccion: `wrangler secret put DEEPSEEK_API_KEY` (ya cargado).
 - El endpoint lee la key de `import { env } from 'cloudflare:workers'` (no
   `Astro.locals.runtime.env`, removido en Astro 6).
 

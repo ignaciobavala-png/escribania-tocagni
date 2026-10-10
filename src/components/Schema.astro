@@ -40,8 +40,9 @@ const schema = {
       '@id': negocioId,
       additionalType: 'https://www.wikidata.org/wiki/Q182436',
       name: 'Escribanía Tocagni',
+      slogan: 'Detrás de cada firma hay una historia.',
       description:
-        'Escribanía en Belgrano, Ciudad de Buenos Aires. Certificaciones, operaciones inmobiliarias, sucesiones, sociedades, fideicomisos y desarrollos inmobiliarios.',
+        'Escribanía en Belgrano y Núñez, Ciudad de Buenos Aires. Certificaciones, operaciones inmobiliarias, sucesiones, sociedades, fideicomisos y desarrollos inmobiliarios.',
       url: `${site}/`,
       image: `${site}/og.jpg`,
       // Sin `logo`: el monograma se quito hasta que la escribana elija uno.
@@ -72,8 +73,22 @@ const schema = {
         },
       ],
       areaServed: [
+        { '@type': 'Neighborhood', name: 'Belgrano' },
+        { '@type': 'Neighborhood', name: 'Núñez' },
         { '@type': 'City', name: 'Ciudad Autónoma de Buenos Aires' },
         { '@type': 'Country', name: 'Argentina' },
+      ],
+      // Los temas que la escribania domina, en lenguaje llano: es lo que los
+      // asistentes (y el grafo de conocimiento) usan para saber de que sabe.
+      knowsAbout: [
+        'Derecho notarial',
+        'Certificación de firmas',
+        'Compraventa de inmuebles',
+        'Sucesiones y declaratorias de herederos',
+        'Constitución de sociedades',
+        'Fideicomisos',
+        'Actas notariales',
+        'Desarrollos inmobiliarios',
       ],
       founder: { '@id': escribanaId },
       employee: { '@id': escribanaId },

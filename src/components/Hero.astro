@@ -3,13 +3,40 @@ import Header from './Header.astro';
 ---
 
 <section class="relative min-h-[76vh] md:min-h-[80vh] flex flex-col bg-primary overflow-hidden">
-  <div class="absolute inset-0 opacity-[0.04]" style="background-image:
-    linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px);
-    background-size: 80px 80px;">
-  </div>
+  {/*
+    Banner de fondo (navy con arcos dorados). Va como background-image de la
+    seccion en vez de la grilla dibujada a mano que habia antes. Es un asset
+    estatico en public/ (sin procesamiento de Astro) por ser CSS background.
+  */}
+  <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/hero-banner.webp');" />
 
-  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_var(--color-primary-dark)_100%)]" opacity-60 />
+  {/*
+    Lineas doradas del banner, redibujadas como SVG y superpuestas al webp
+    (el webp las tiene "horneadas" en los pixeles, asi que no se pueden animar
+    ahi). Aproximan la curvatura de los arcos de la imagen, no son un trace
+    pixel-perfect. Cada arco dorado lleva un trazo estatico (el brillo base,
+    para que se vea igual que antes si la animacion esta desactivada) mas un
+    segundo trazo con stroke-dasharray que recorre el mismo path en loop, como
+    un destello sutil viajando por la linea.
+  */}
+  <svg
+    class="hero-lines absolute inset-0 w-full h-full pointer-events-none"
+    viewBox="0 0 2000 773"
+    preserveAspectRatio="xMidYMid slice"
+    aria-hidden="true"
+  >
+    <path class="line-white" d="M -20,210 C 150,260 300,280 420,260 C 560,235 650,190 700,120" />
+    <path class="line-white" d="M -20,500 C 110,360 230,260 330,230 C 440,190 560,110 640,-20" />
+    <path class="line-gold-base" d="M -20,580 C 120,420 250,300 330,230 C 430,145 540,60 660,-20" />
+    <path class="line-gold-shimmer" d="M -20,580 C 120,420 250,300 330,230 C 430,145 540,60 660,-20" />
+
+    <path class="line-white" d="M 2020,470 C 1850,420 1700,400 1580,420 C 1440,445 1350,490 1300,560" />
+    <path class="line-white" d="M 2020,280 C 1890,420 1770,520 1670,550 C 1560,590 1440,670 1360,793" />
+    <path class="line-gold-base" d="M 2020,200 C 1880,360 1750,480 1670,550 C 1570,635 1460,720 1340,793" />
+    <path class="line-gold-shimmer" d="M 2020,200 C 1880,360 1750,480 1670,550 C 1570,635 1460,720 1340,793" />
+  </svg>
+
+  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_var(--color-primary-dark)_100%)]" opacity-50 />
 
   <div class="relative flex-1 flex flex-col">
     <Header />
@@ -17,29 +44,29 @@ import Header from './Header.astro';
     <div class="flex-1 flex items-center">
       <div class="mx-auto max-w-7xl px-6 w-full">
         <div class="max-w-4xl py-12 md:py-16 mx-auto text-center">
-          <div class="w-16 h-px bg-accent mb-10 mx-auto" />
+          <div class="hero-reveal w-16 h-px bg-accent mb-10 mx-auto" style="animation-delay: 0ms;" />
 
-          <!--
+          {/*
             Los dos renglones de la marca viven dentro del mismo <h1>: el h1 es
             la segunda senal semantica de la pagina y "Tocagni" solo no dice que
             esto es una escribania. Los <span> son block, asi que el render es
             identico al que tenia el <p> separado.
-          -->
+          */}
           <h1 class="mb-6">
-            <span class="block font-roman text-white/40 text-sm md:text-base tracking-[0.3em] uppercase mb-6">
+            <span class="hero-reveal block font-roman text-white/40 text-sm md:text-base tracking-[0.3em] uppercase mb-6" style="animation-delay: 150ms;">
               Escribanía
             </span>
-            <span class="block font-roman text-5xl sm:text-6xl md:text-[5rem] text-white uppercase leading-none tracking-[0.08em]">
+            <span class="hero-reveal block font-roman text-5xl sm:text-6xl md:text-[5rem] text-white uppercase leading-none tracking-[0.08em]" style="animation-delay: 300ms;">
               Tocagni
             </span>
           </h1>
 
-          <p class="text-white/50 text-lg md:text-xl max-w-xl mx-auto leading-relaxed mb-10 font-light">
+          <p class="hero-reveal text-white/50 text-lg md:text-xl max-w-xl mx-auto leading-relaxed mb-10 font-light" style="animation-delay: 450ms;">
             Detrás de cada firma hay una historia.<br />
             Cada decisión merece ser bien acompañada.
           </p>
 
-          <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <div class="hero-reveal flex flex-col sm:flex-row gap-3 justify-center" style="animation-delay: 600ms;">
             <a
               href="#servicios"
               class="inline-flex items-center justify-center gap-3 bg-accent hover:bg-accent-light text-primary-dark font-medium px-9 py-4 text-base tracking-widest uppercase transition-colors duration-300"
@@ -62,3 +89,74 @@ import Header from './Header.astro';
 
   </div>
 </section>
+
+<style>
+  /* Entrada de texto: fade + slide sutil, escalonado por animation-delay inline en cada elemento. */
+  .hero-reveal {
+    opacity: 0;
+    animation: hero-reveal-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes hero-reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Lineas del banner: el trazo base queda fijo (brillo original), el "shimmer" viaja por encima. */
+  .hero-lines path {
+    fill: none;
+  }
+
+  .line-white {
+    stroke: white;
+    stroke-width: 1;
+    opacity: 0.12;
+  }
+
+  .line-gold-base {
+    stroke: var(--color-accent);
+    stroke-width: 1.5;
+    opacity: 0.35;
+  }
+
+  .line-gold-shimmer {
+    stroke: var(--color-accent-light, var(--color-accent));
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-dasharray: 60 900;
+    opacity: 0.8;
+    animation: hero-line-shimmer 9s linear infinite;
+  }
+
+  .line-gold-shimmer:nth-of-type(4) {
+    animation-delay: -4.5s;
+  }
+
+  @keyframes hero-line-shimmer {
+    from {
+      stroke-dashoffset: 0;
+    }
+    to {
+      stroke-dashoffset: -960;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-reveal {
+      opacity: 1;
+      animation: none;
+      transform: none;
+    }
+
+    .line-gold-shimmer {
+      animation: none;
+      opacity: 0;
+    }
+  }
+</style>

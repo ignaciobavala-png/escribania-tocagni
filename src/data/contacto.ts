@@ -1,5 +1,5 @@
 // Fuente única de los datos de contacto: los consumen Contacto.astro y
-// WhatsappFab.astro. El email sigue siendo PLACEHOLDER.
+// WhatsappFab.astro.
 //
 // wa.me pide solo dígitos, con código de país y SIN el 15:
 //   +54 11 4444-5555  ->  541144445555
@@ -17,5 +17,6 @@ export const whatsappUrl = `https://wa.me/${phoneWhatsapp}?text=${encodeURICompo
 // queda en .com.ar a pedido de Ines: asi lo escribio en el Word. NO es un
 // descuido — la casilla no depende del dominio del sitio. Si algun dia rebotan
 // los mails de clientes, revisar esto primero.
-export const email = 'info@escribaniatocagni.com.ar';
+// Direccion confirmada por Ines (2026-09-27): administracion@, no info@.
+export const email = 'administracion@escribaniatocagni.com.ar';
 export const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=-34.5537,-58.4505';

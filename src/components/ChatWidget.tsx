@@ -6,6 +6,10 @@ import { whatsappUrl } from '../data/contacto';
 // Un solo transporte para toda la vida del widget.
 const transport = new DefaultChatTransport({ api: '/api/chat' });
 
+// Se ve una vez por sesion de pestana: si ya se descarto (manual, abriendo el
+// chat, o en una visita anterior de esta misma sesion) no vuelve a aparecer.
+const BUBBLE_DISMISSED_KEY = 'tocagni-chat-bubble-dismissed';
+
 interface Props {
   /** Atajos del estado vacío, provistos por el server (data/agente.ts). */
   sugerencias: string[];
@@ -14,6 +18,7 @@ interface Props {
 export default function ChatWidget({ sugerencias }: Props) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [showBubble, setShowBubble] = useState(false);
 
   const { messages, sendMessage, status, error } = useChat({ transport });
   const busy = status === 'submitted' || status === 'streaming';
@@ -25,6 +30,29 @@ export default function ChatWidget({ sugerencias }: Props) {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  // Globito "¿Una consulta?": aparece una vez, con un respiro despues del
+  // primer paint para no competir con el resto de la entrada de la pagina.
+  useEffect(() => {
+    let dismissed = false;
+    try {
+      dismissed = sessionStorage.getItem(BUBBLE_DISMISSED_KEY) === '1';
+    } catch {
+      // Storage bloqueado (ventana privada, etc): el globito se muestra igual.
+    }
+    if (dismissed) return;
+    const t = setTimeout(() => setShowBubble(true), 1200);
+    return () => clearTimeout(t);
+  }, []);
+
+  function dismissBubble() {
+    setShowBubble(false);
+    try {
+      sessionStorage.setItem(BUBBLE_DISMISSED_KEY, '1');
+    } catch {
+      // Sin storage no persiste, pero el estado en memoria ya lo oculta.
+    }
+  }
 
   // Escape cierra el panel.
   useEffect(() => {
@@ -210,10 +238,36 @@ export default function ChatWidget({ sugerencias }: Props) {
         </section>
       )}
 
+      {/* Globito "consultame": solo antes de abrir el chat por primera vez. */}
+      {!open && showBubble && (
+        <div className="relative chat-bubble-in">
+          <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-xl shadow-[0_8px_24px_-8px_rgb(26_41_64/0.3)] pl-4 pr-2.5 py-2.5">
+            <p className="text-sm text-neutral-700 whitespace-nowrap">
+              <span className="text-accent-dark font-medium">¿Una consulta?</span> Preguntame
+            </p>
+            <button
+              type="button"
+              onClick={dismissBubble}
+              aria-label="Cerrar aviso"
+              className="flex-none p-1 rounded-md text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+          {/* Puntita del globo, apunta al launcher */}
+          <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-white border-r border-b border-neutral-200 rotate-45" aria-hidden="true" />
+        </div>
+      )}
+
       {/* Launcher: navy con filo dorado y esquinas suaves, mismo lenguaje que el panel */}
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setOpen((v) => !v);
+          dismissBubble();
+        }}
         aria-expanded={open}
         aria-label={open ? 'Cerrar asistente' : 'Abrir asistente'}
         className="inline-flex items-center justify-center w-14 h-14 md:w-[3.75rem] md:h-[3.75rem] rounded-2xl bg-primary text-accent shadow-[0_8px_28px_-8px_rgb(26_41_64/0.55)] border border-white/10 hover:bg-primary-light transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"

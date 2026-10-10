@@ -8,6 +8,7 @@ const contactInfo = [
     href: mapsUrl,
     external: true,
     hint: 'Cómo llegar',
+    wide: true,
   },
   {
     label: 'Teléfono',
@@ -17,19 +18,29 @@ const contactInfo = [
     hint: 'Escribinos por WhatsApp',
   },
   {
+    label: 'Horario',
+    value: 'Lunes a viernes | 10\u00a0a\u00a018\u00a0hs.',
+  },
+  {
     label: 'Email',
     value: email,
     href: `mailto:${email}`,
-  },
-  {
-    label: 'Horario',
-    value: 'Lunes a viernes | 10 a 18 hs.',
+    wide: true,
   },
 ];
 ---
 
-<footer id="contacto" class="bg-primary pt-16 md:pt-20 pb-5">
-  <div class="mx-auto max-w-7xl px-6">
+<footer id="contacto" class="bg-primary pb-5">
+  {/*
+    Mismo banner que el hero: reusa /hero-banner.webp como fondo del bloque de
+    contacto. El degradado deja pasar los arcos pero baja a primary solido
+    abajo, para que empalme con la franja del mapa.
+  */}
+  <div class="relative pt-16 md:pt-20">
+    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/hero-banner.webp');" aria-hidden="true"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-primary/45 via-primary/65 to-primary" aria-hidden="true"></div>
+
+  <div class="relative mx-auto max-w-7xl px-6">
     <div class="w-16 h-px bg-accent mb-10" />
 
     <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 mb-14">
@@ -47,7 +58,7 @@ const contactInfo = [
 
       <div class="grid sm:grid-cols-2 gap-8">
         {contactInfo.map((c) => (
-          <div>
+          <div class:list={['min-w-0', c.wide && 'sm:col-span-2']}>
             <p class="text-sm tracking-[0.2em] uppercase text-accent/50 mb-1.5 font-medium">{c.label}</p>
 
             {c.href ? (
@@ -57,7 +68,14 @@ const contactInfo = [
                 rel={c.external ? 'noopener noreferrer' : undefined}
                 class="contact-link inline-block text-white/70 text-base break-words"
               >
-                <span class="contact-value relative inline-block">{c.value}</span>
+                <span class="contact-value relative inline-block">
+                  {/* Direccion y email van a fila completa (wide): en media
+                      columna el email partia en dos. El corte tras la @ queda
+                      solo como reserva para celulares muy angostos. */}
+                  {c.value.includes('@') ? (
+                    <>{c.value.split('@')[0]}@<wbr />{c.value.split('@')[1]}</>
+                  ) : c.value}
+                </span>
                 {/* Sin hint no se emite la linea: antes caia en un "Escribinos"
                     por defecto que Ines pidio sacar del email. */}
                 {c.hint && (
@@ -72,8 +90,9 @@ const contactInfo = [
       </div>
     </div>
   </div>
+  </div>
 
-  <!-- Franja horizontal a todo el ancho: mapa fijo, no interactivo -->
+  {/* Franja horizontal a todo el ancho: mapa fijo, no interactivo */}
   <div class="relative border-y border-white/10 bg-neutral-800">
     <div class="h-40 md:h-52 overflow-hidden">
       <iframe
