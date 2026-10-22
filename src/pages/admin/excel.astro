@@ -1,0 +1,260 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+
+export const prerender = false;
+
+const boton = 'border border-primary text-primary px-5 py-4 text-lg font-medium min-h-14 disabled:opacity-50';
+---
+
+<AdminLayout title="Excel">
+  <h1 class="font-serif text-3xl md:text-4xl text-primary tracking-tight">Excel</h1>
+  <div class="w-16 h-px bg-accent mt-4 mb-8"></div>
+
+  <div class="grid gap-12 lg:grid-cols-2">
+    <section aria-labelledby="h-exp" class="space-y-4">
+      <h2 id="h-exp" class="text-base uppercase tracking-[0.25em] text-neutral-600">Descargar</h2>
+      <p class="text-lg text-neutral-700">Bajá todo lo cargado en una planilla. Después se puede volver a importar.</p>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button type="button" data-exportar="fichas" class={boton}>Consultas (.xlsx)</button>
+        <button type="button" data-exportar="vencimientos" class={boton}>Vencimientos (.xlsx)</button>
+      </div>
+      <p class="text-base text-neutral-600">
+        ¿Primera vez? Plantillas vacías:
+        <button type="button" data-plantilla="fichas" class="underline text-primary">consultas</button> ·
+        <button type="button" data-plantilla="vencimientos" class="underline text-primary">vencimientos</button>
+      </p>
+      <p id="msg-exp" role="status" class="text-lg text-neutral-700 min-h-7"></p>
+    </section>
+
+    <section aria-labelledby="h-imp" class="space-y-4">
+      <h2 id="h-imp" class="text-base uppercase tracking-[0.25em] text-neutral-600">Importar</h2>
+      <p class="text-lg text-neutral-700">
+        Subí tu planilla. Antes de guardar nada vas a ver qué se entendió. El archivo se lee en tu
+        dispositivo: no se envía a ningún lado hasta que confirmes.
+      </p>
+      <fieldset class="flex gap-6 text-lg">
+        <legend class="sr-only">Qué estás importando</legend>
+        <label class="flex items-center gap-2 min-h-12"><input type="radio" name="tipo" value="fichas" checked class="w-5 h-5" /> Consultas</label>
+        <label class="flex items-center gap-2 min-h-12"><input type="radio" name="tipo" value="vencimientos" class="w-5 h-5" /> Vencimientos</label>
+      </fieldset>
+      <label class="block">
+        <span class="sr-only">Archivo de Excel</span>
+        <input id="archivo" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="block w-full text-lg border border-neutral-300 bg-white p-3" />
+      </label>
+      <p class="text-base text-neutral-600">Formato .xlsx. Si tenés un .xls viejo, abrilo en Excel y guardalo como .xlsx.</p>
+    </section>
+  </div>
+
+  <p id="resultado" role="status" class="mt-10 text-xl text-emerald-900 border-l-4 border-emerald-600 bg-emerald-50 px-4 py-3 hidden"></p>
+
+  <section id="vista" class="mt-12 hidden" aria-live="polite">
+    <h2 class="font-serif text-2xl text-primary tracking-tight">Vista previa</h2>
+    <p id="resumen" class="mt-3 text-lg text-neutral-800"></p>
+    <ul id="avisos-gen" class="mt-3 space-y-1 text-base text-neutral-700"></ul>
+    <div class="mt-5 overflow-x-auto border border-neutral-200 bg-white">
+      <table class="w-full text-left text-base">
+        <thead id="thead" class="bg-neutral-100 text-neutral-600"></thead>
+        <tbody id="tbody" class="divide-y divide-neutral-200"></tbody>
+      </table>
+    </div>
+    <p id="recorte" class="mt-2 text-base text-neutral-600"></p>
+    <div class="mt-6 flex flex-col sm:flex-row gap-3">
+      <button type="button" id="confirmar" class="bg-primary text-white px-6 py-4 text-lg font-medium min-h-14 disabled:opacity-50"></button>
+      <button type="button" id="cancelar" class={boton}>Cancelar</button>
+    </div>
+    <p id="msg-imp" role="status" class="mt-4 text-lg text-neutral-800 min-h-7"></p>
+  </section>
+</AdminLayout>
+
+<script>
+  import { readSheet } from 'read-excel-file/web-worker';
+  import writeExcelFile from 'write-excel-file/universal';
+  import { leerPlanilla, MAX_FILAS, type Celda, type FichaImport, type Lectura, type Tipo, type VencimientoImport } from '../../lib/importar';
+  import { ESTADOS, URGENCIAS, nombreServicio, type Estado, type Urgencia } from '../../lib/fichas';
+  import { fechaDeInstante } from '../../lib/fechas';
+
+  const $ = <T extends HTMLElement>(s: string) => document.querySelector<T>(s)!;
+  const msgExp = $('#msg-exp');
+  const MAX_BYTES = 5_000_000;
+
+  const aFecha = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return { value: new Date(Date.UTC(y, m - 1, d)), type: Date, format: 'dd/mm/yyyy' };
+  };
+  const enc = (t: string) => ({ value: t, fontWeight: 'bold' as const });
+
+  async function descargar(nombre: string, filas: unknown[][], anchos: number[]) {
+    const blob = await writeExcelFile(filas as never, { columns: anchos.map((width) => ({ width })) }).toBlob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ---------- Exportar ----------
+  const ENCABEZADO = {
+    fichas: ['Nombre', 'Contacto', 'Trámite', 'Urgencia', 'Estado', 'Detalle', 'Ingresó'],
+    vencimientos: ['Concepto', 'Vence', 'Cliente', 'Estado'],
+  } as const;
+  const ANCHOS = { fichas: [28, 26, 26, 12, 24, 60, 14], vencimientos: [40, 14, 28, 12] };
+  const hoy = () => new Date().toISOString().slice(0, 10);
+
+  document.querySelectorAll<HTMLButtonElement>('[data-exportar]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const tipo = b.dataset.exportar as Tipo;
+      b.disabled = true;
+      msgExp.textContent = 'Preparando…';
+      try {
+        const res = await fetch(`/api/admin/exportar?tipo=${tipo}`);
+        if (!res.ok) throw new Error();
+        const { filas } = (await res.json()) as { filas: Record<string, string | null>[] };
+        const cuerpo = filas.map((f) =>
+          tipo === 'fichas'
+            ? [f.nombre, f.contacto, nombreServicio(f.servicio), URGENCIAS[f.urgencia as Urgencia], ESTADOS[f.estado as Estado], f.resumen, aFecha(fechaDeInstante(f.creada!))]
+            : [f.concepto, aFecha(f.vence!), f.cliente, f.estado === 'resuelto' ? 'Resuelto' : 'Abierto'],
+        );
+        await descargar(`${tipo}-${hoy()}.xlsx`, [ENCABEZADO[tipo].map(enc), ...cuerpo], ANCHOS[tipo]);
+        msgExp.textContent = `Listo: ${filas.length} ${filas.length === 1 ? 'fila' : 'filas'}.`;
+      } catch {
+        msgExp.textContent = 'No se pudo generar la planilla.';
+      } finally {
+        b.disabled = false;
+      }
+    }),
+  );
+
+  document.querySelectorAll<HTMLButtonElement>('[data-plantilla]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const tipo = b.dataset.plantilla as Tipo;
+      const ejemplo =
+        tipo === 'fichas'
+          ? ['Ana López', '11 5555-0000', 'Operaciones inmobiliarias', 'Normal', 'Nueva', 'Quiere comprar un departamento', null]
+          : ['Certificado registral', aFecha('2026-12-15'), 'Ana López', 'Abierto'];
+      await descargar(`plantilla-${tipo}.xlsx`, [ENCABEZADO[tipo].map(enc), ejemplo], ANCHOS[tipo]);
+    }),
+  );
+
+  // ---------- Importar ----------
+  type Lect = Lectura<FichaImport> | Lectura<VencimientoImport>;
+  let lectura: Lect | null = null;
+  let tipoActual: Tipo = 'fichas';
+
+  const vista = $('#vista');
+  const archivo = $<HTMLInputElement>('#archivo');
+  const confirmar = $<HTMLButtonElement>('#confirmar');
+  const msgImp = $('#msg-imp');
+
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+  const resultado = $('#resultado');
+
+  function reiniciar() {
+    resultado.classList.add('hidden');
+    lectura = null;
+    archivo.value = '';
+    vista.classList.add('hidden');
+    msgImp.textContent = '';
+  }
+  $('#cancelar').addEventListener('click', reiniciar);
+
+  archivo.addEventListener('change', async () => {
+    const f = archivo.files?.[0];
+    if (!f) return;
+    msgImp.textContent = '';
+    resultado.classList.add('hidden');
+    if (f.size > MAX_BYTES) return mostrarError('El archivo es demasiado grande (máximo 5 MB).');
+    tipoActual = (document.querySelector<HTMLInputElement>('input[name=tipo]:checked')!.value) as Tipo;
+    try {
+      const datos = (await readSheet(f)) as Celda[][];
+      lectura = (tipoActual === 'fichas' ? leerPlanilla('fichas', datos) : leerPlanilla('vencimientos', datos)) as Lect;
+      pintar();
+    } catch {
+      mostrarError('No se pudo leer el archivo. Tiene que ser un .xlsx válido.');
+    }
+  });
+
+  function mostrarError(t: string) {
+    vista.classList.remove('hidden');
+    $('#resumen').textContent = t;
+    $('#avisos-gen').innerHTML = '';
+    $('#thead').innerHTML = '';
+    $('#tbody').innerHTML = '';
+    $('#recorte').textContent = '';
+    confirmar.classList.add('hidden');
+  }
+
+  function pintar() {
+    const l = lectura!;
+    const validas = l.filas.filter((f) => f.valores);
+    const conError = l.filas.filter((f) => f.errores.length);
+    const conAviso = validas.filter((f) => f.avisos.length);
+
+    vista.classList.remove('hidden');
+    confirmar.classList.remove('hidden');
+    $('#resumen').textContent =
+      `${plural(validas.length, 'fila lista', 'filas listas')} para importar` +
+      (conError.length ? ` · ${plural(conError.length, 'con error (se omite)', 'con error (se omiten)')}` : '') +
+      (conAviso.length ? ` · ${plural(conAviso.length, 'con aviso', 'con avisos')}` : '');
+
+    const reco = Object.entries(l.columnas).filter(([, t]) => t).map(([c, t]) => `<strong>${esc(c)}</strong> ← “${esc(t)}”`);
+    const faltan = Object.entries(l.columnas).filter(([, t]) => !t).map(([c]) => c);
+    $('#avisos-gen').innerHTML = [
+      reco.length && `<li>Columnas reconocidas: ${reco.join(', ')}.</li>`,
+      faltan.length && `<li>Sin columna para: ${faltan.map(esc).join(', ')}.</li>`,
+      l.ignoradas.length && `<li>Se ignoran: ${l.ignoradas.map((t) => `“${esc(t)}”`).join(', ')}.</li>`,
+      l.truncada && `<li class="text-red-700">La planilla tiene más de ${MAX_FILAS} filas: se leen solo las primeras ${MAX_FILAS}.</li>`,
+    ].filter(Boolean).join('');
+
+    const cols = tipoActual === 'fichas' ? ['Nombre', 'Contacto', 'Trámite', 'Urgencia', 'Estado'] : ['Concepto', 'Vence', 'Cliente', 'Estado'];
+    $('#thead').innerHTML = `<tr><th class="px-3 py-2 font-medium">Fila</th><th class="px-3 py-2 font-medium">Resultado</th>${cols.map((c) => `<th class="px-3 py-2 font-medium">${c}</th>`).join('')}</tr>`;
+
+    const MOSTRAR = 50;
+    $('#tbody').innerHTML = l.filas.slice(0, MOSTRAR).map((f) => {
+      const v = f.valores as Record<string, string | null> | null;
+      const res = f.errores.length
+        ? `<span class="text-red-700 font-medium">Error</span><br>${f.errores.map(esc).join('<br>')}`
+        : f.avisos.length
+          ? `<span class="text-amber-800 font-medium">Aviso</span><br>${f.avisos.map(esc).join('<br>')}`
+          : '<span class="text-emerald-800 font-medium">Lista</span>';
+      const celdas = !v ? cols.map(() => '<td class="px-3 py-2 text-neutral-400">—</td>') :
+        (tipoActual === 'fichas'
+          ? [v.nombre, v.contacto, nombreServicio(v.servicio), URGENCIAS[v.urgencia as Urgencia], ESTADOS[v.estado as Estado]]
+          : [v.concepto, v.vence, v.cliente, v.estado === 'resuelto' ? 'Resuelto' : 'Abierto']
+        ).map((x) => `<td class="px-3 py-2">${esc(x)}</td>`);
+      return `<tr class="align-top"><td class="px-3 py-2 tabular-nums">${f.fila}</td><td class="px-3 py-2 min-w-48">${res}</td>${celdas.join('')}</tr>`;
+    }).join('');
+    $('#recorte').textContent = l.filas.length > MOSTRAR ? `Se muestran las primeras ${MOSTRAR} de ${l.filas.length} filas.` : '';
+
+    confirmar.textContent = `Importar ${plural(validas.length, 'fila', 'filas')}`;
+    confirmar.disabled = validas.length === 0;
+  }
+
+  confirmar.addEventListener('click', async () => {
+    if (!lectura) return;
+    const filas = lectura.filas.filter((f) => f.valores).map((f) => f.valores);
+    confirmar.disabled = true;
+    msgImp.textContent = 'Importando…';
+    try {
+      const res = await fetch('/api/admin/importar', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ tipo: tipoActual, filas }),
+      });
+      const r = await res.json();
+      if (!res.ok) throw new Error(r.error);
+      const partes = [`Se importaron ${plural(r.importadas, 'fila', 'filas')}`];
+      if (r.omitidas) partes.push(`${r.omitidas} ya existían y se omitieron`);
+      if (r.invalidas) partes.push(`${r.invalidas} no eran válidas`);
+      if (r.sinVincular) partes.push(`${r.sinVincular} sin consulta asociada (no se encontró ese nombre)`);
+      // La vista previa ya cumplió: se oculta y queda solo el resultado.
+      reiniciar();
+      resultado.textContent = partes.join(' · ') + '.';
+      resultado.classList.remove('hidden');
+    } catch (e) {
+      msgImp.textContent = e instanceof Error && e.message ? e.message : 'No se pudo importar. Revisá la conexión.';
+      confirmar.disabled = false;
+    }
+  });
+</script>

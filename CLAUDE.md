@@ -495,6 +495,15 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
   Access no lo bloquee), `public/admin/sw.js` (solo pantalla offline; NO cachea
   datos de clientes). Dictado: `/api/admin/dictar` (Whisper en Workers AI, sin
   `initial_prompt`: con audio sin voz devolvia el prompt como si se hubiera dicho).
+- **Excel** (`/admin/excel`): todo en el navegador (`read-excel-file/web-worker`,
+  `write-excel-file/universal`; las variantes sin Web Workers a proposito).
+  `src/lib/importar.ts` es la logica pura, compartida entre la vista previa
+  (cliente) y `api/admin/importar.ts` (servidor, que revalida todo): reconoce
+  columnas por sinonimos, parsea fechas (dd/mm/aaaa, serie de Excel, Date) y
+  omite duplicados (mismo nombre+contacto+detalle, sin distinguir tildes ni
+  mayusculas). **Las fechas se leen con `getUTC*`**: la libreria devuelve
+  medianoche UTC y con la hora local de Argentina (UTC-3) el 25 pasa a ser 24.
+  Tope de 500 filas y 5 MB. Exportar y volver a importar no pierde datos.
 - **Local**: el binding `EMAIL` se simula (no sale ningun mail; el contenido se
   guarda en `.wrangler/tmp/email`). `AI` siempre pega a Cloudflare (cobra poco).
   Typecheck: `pnpm --package=typescript@5 dlx tsc --noEmit` (el build de Astro

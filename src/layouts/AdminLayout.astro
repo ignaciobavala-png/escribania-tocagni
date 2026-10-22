@@ -10,6 +10,7 @@ const ruta = Astro.url.pathname.replace(/\/$/, '');
 const nav = [
   { href: '/admin', texto: 'Resumen' },
   { href: '/admin/nueva', texto: 'Nueva consulta' },
+  { href: '/admin/excel', texto: 'Excel' },
 ];
 ---
 
@@ -57,7 +58,7 @@ const nav = [
     </main>
     {/* En el teléfono la navegación va abajo, al alcance del pulgar. */}
     <nav
-      class="md:hidden fixed bottom-0 inset-x-0 bg-primary border-t border-accent/40 grid grid-cols-2 pb-[env(safe-area-inset-bottom)]"
+      class="md:hidden fixed bottom-0 inset-x-0 bg-primary border-t border-accent/40 grid grid-cols-3 pb-[env(safe-area-inset-bottom)]"
       aria-label="Principal"
     >
       {nav.map((n) => (

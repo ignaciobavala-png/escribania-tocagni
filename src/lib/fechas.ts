@@ -54,3 +54,8 @@ export function semaforo(fecha: string): Semaforo {
   if (d <= 30) return { texto: `en ${d} días`, punto: 'bg-amber-500', nivel: 'ambar' };
   return { texto: `en ${d} días`, punto: 'bg-emerald-600', nivel: 'verde' };
 }
+
+/** YYYY-MM-DD en Buenos Aires de un instante ISO (para fechas de ingreso en planillas). */
+export function fechaDeInstante(iso: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(iso));
+}
