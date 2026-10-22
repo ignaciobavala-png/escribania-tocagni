@@ -45,7 +45,11 @@ const nav = [
             <a href={n.href} class={ruta === n.href ? 'text-accent-light' : 'text-white/70 hover:text-white'}>{n.texto}</a>
           ))}
         </nav>
-        {usuario && <span class="hidden md:inline text-base text-white/70">{usuario.email} · {usuario.rol}</span>}
+        <div class="flex items-center gap-4 text-base text-white/70">
+          {usuario && <span class="hidden md:inline">{usuario.email} · {usuario.rol}</span>}
+          {/* Cierra la sesión de Access; en local no hay Access y da 404. */}
+          <a href="/cdn-cgi/access/logout" class="py-2 hover:text-white">Salir</a>
+        </div>
       </div>
     </header>
     <main class="max-w-6xl mx-auto px-5 py-8 md:py-10">
