@@ -1,5 +1,6 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
+import { ACCEPT } from '../../lib/documentos';
 
 export const prerender = false;
 
@@ -36,12 +37,24 @@ const etiqueta = 'text-base uppercase tracking-[0.2em] text-neutral-600';
     <label class="block"><span class={etiqueta}>Teléfono o mail</span>
       <input name="contacto" autocomplete="off" autocapitalize="off" class={campo} /></label>
 
+    <div>
+      <span class={etiqueta}>Archivos (opcional)</span>
+      <label for="archivos" class="mt-2 flex cursor-pointer flex-col items-center justify-center gap-1 border-2 border-dashed border-neutral-300 bg-white px-4 py-6 text-center hover:border-primary">
+        <span class="text-lg font-medium text-primary">Elegir archivos o sacar una foto</span>
+        <span class="text-base text-neutral-600">PDF, fotos, Word o Excel · hasta 10 MB cada uno</span>
+      </label>
+      <input id="archivos" type="file" multiple accept={ACCEPT} class="sr-only" />
+      <ul id="lista-archivos" class="mt-2 divide-y divide-neutral-200"></ul>
+    </div>
+
     <button type="submit" id="guardar" class="w-full bg-primary text-white py-4 text-lg font-medium disabled:opacity-50">Guardar</button>
     <p id="error" role="alert" class="text-lg text-red-700 min-h-7"></p>
   </form>
 </AdminLayout>
 
 <script>
+  import { MAX_BYTES, TIPOS, extension, tamano } from '../../lib/documentos';
+
   const MAX_SEG = 180; // tope de grabación; el endpoint también limita el tamaño
 
   const form = document.querySelector<HTMLFormElement>('#form')!;
@@ -127,6 +140,49 @@ const etiqueta = 'text-base uppercase tracking-[0.2em] text-neutral-600';
     }
   });
 
+  // Archivos elegidos: se suben después de crear la consulta, de a uno.
+  const selector = document.querySelector<HTMLInputElement>('#archivos')!;
+  const listaArchivos = document.querySelector<HTMLElement>('#lista-archivos')!;
+  let archivos: File[] = [];
+
+  function pintarArchivos() {
+    listaArchivos.replaceChildren(
+      ...archivos.map((f, i) => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center gap-3 py-2 text-lg';
+        const nombre = document.createElement('span');
+        nombre.className = 'flex-1 truncate';
+        nombre.textContent = f.name;
+        const peso = document.createElement('span');
+        peso.className = 'text-base text-neutral-600 shrink-0';
+        peso.textContent = tamano(f.size);
+        const quitar = document.createElement('button');
+        quitar.type = 'button';
+        quitar.className = 'min-h-12 px-3 text-base text-red-700 underline';
+        quitar.textContent = 'Quitar';
+        quitar.addEventListener('click', () => {
+          archivos.splice(i, 1);
+          pintarArchivos();
+        });
+        li.append(nombre, peso, quitar);
+        return li;
+      }),
+    );
+  }
+
+  selector.addEventListener('change', () => {
+    error.textContent = '';
+    const rechazados: string[] = [];
+    for (const f of selector.files ?? []) {
+      if (!(extension(f.name) in TIPOS)) rechazados.push(`${f.name}: tipo no permitido`);
+      else if (f.size > MAX_BYTES) rechazados.push(`${f.name}: supera los 10 MB`);
+      else if (!archivos.some((a) => a.name === f.name && a.size === f.size)) archivos.push(f);
+    }
+    selector.value = '';
+    if (rechazados.length) error.textContent = rechazados.join(' · ');
+    pintarArchivos();
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     error.textContent = '';
@@ -137,13 +193,22 @@ const etiqueta = 'text-base uppercase tracking-[0.2em] text-neutral-600';
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(Object.fromEntries(new FormData(form))),
     }).catch(() => null);
-    if (res?.ok) {
-      const { id } = await res.json();
-      location.href = `/admin/fichas/${id}?nueva=1`;
+    if (!res?.ok) {
+      error.textContent = (await res?.json().catch(() => ({})))?.error ?? 'No se pudo guardar. Revisá la conexión.';
+      guardar.disabled = false;
+      guardar.textContent = 'Guardar';
       return;
     }
-    error.textContent = (await res?.json().catch(() => ({})))?.error ?? 'No se pudo guardar. Revisá la conexión.';
-    guardar.disabled = false;
-    guardar.textContent = 'Guardar';
+    const { id } = await res.json();
+    let fallaron = 0;
+    for (const [i, f] of archivos.entries()) {
+      guardar.textContent = `Subiendo archivos (${i + 1}/${archivos.length})…`;
+      const datos = new FormData();
+      datos.append('archivo', f);
+      const subida = await fetch(`/api/admin/fichas/${id}/documentos`, { method: 'POST', body: datos }).catch(() => null);
+      if (!subida?.ok) fallaron++;
+    }
+    // La consulta ya existe: se va a su ficha aunque algún archivo haya fallado, y ahí se avisa.
+    location.href = `/admin/fichas/${id}?nueva=1${fallaron ? `&fallaron=${fallaron}` : ''}`;
   });
 </script>

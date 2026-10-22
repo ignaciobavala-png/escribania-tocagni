@@ -3,6 +3,7 @@ import { env } from 'cloudflare:workers';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { ESTADOS, URGENCIAS, claseEstado, serviciosOpciones, type Estado } from '../../../lib/fichas';
 import { fechaCorta, haceCuanto, semaforo } from '../../../lib/fechas';
+import { ACCEPT, VISIBLES, tamano } from '../../../lib/documentos';
 
 export const prerender = false;
 
@@ -17,7 +18,12 @@ const vencimientos = await env.DB.prepare(
   `SELECT id, concepto, vence, estado FROM vencimientos WHERE ficha_id = ? ORDER BY estado, vence`,
 ).bind(id).all<{ id: string; concepto: string; vence: string; estado: 'abierto' | 'resuelto' }>();
 
+const documentos = await env.DB.prepare(
+  `SELECT id, tipo, nombre, bytes, subido FROM documentos WHERE ficha_id = ? ORDER BY subido DESC`,
+).bind(id).all<{ id: string; tipo: string; nombre: string; bytes: number | null; subido: string }>();
+
 const guardada = Astro.url.searchParams.has('nueva');
+const fallaron = Number(Astro.url.searchParams.get('fallaron')) || 0;
 const campo = 'mt-2 w-full border border-neutral-300 bg-white px-4 py-3 text-lg';
 const etiqueta = 'text-base uppercase tracking-[0.2em] text-neutral-600';
 
@@ -34,6 +40,12 @@ const enlaceContacto = contacto.includes('@')
   {guardada && (
     <p role="status" class="mt-4 border-l-4 border-emerald-600 bg-emerald-50 px-4 py-3 text-lg text-emerald-900">
       Consulta guardada.
+    </p>
+  )}
+
+  {fallaron > 0 && (
+    <p role="alert" class="mt-4 border-l-4 border-red-600 bg-red-50 px-4 py-3 text-lg text-red-900">
+      {fallaron === 1 ? 'No se pudo subir 1 archivo.' : `No se pudieron subir ${fallaron} archivos.`} Volvé a intentarlo desde Documentos.
     </p>
   )}
 
@@ -115,9 +127,39 @@ const enlaceContacto = contacto.includes('@')
       </form>
     </section>
   </div>
+
+  <section aria-labelledby="h-docs" class="mt-12">
+    <h2 id="h-docs" class="text-base uppercase tracking-[0.25em] text-neutral-600 mb-3">Documentos</h2>
+    {documentos.results.length === 0 ? (
+      <p class="text-lg text-neutral-600 mb-4">Ningún archivo adjunto.</p>
+    ) : (
+      <ul class="divide-y divide-neutral-200 border-y border-neutral-200 mb-4">
+        {documentos.results.map((d) => (
+          <li class="py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-lg">
+            <span class="flex-1 min-w-48 break-words">
+              {d.nombre}
+              <span class="block text-base text-neutral-600">{tamano(d.bytes ?? 0)} · {haceCuanto(d.subido)}</span>
+            </span>
+            <span class="flex gap-3 text-base">
+              {VISIBLES.has(d.tipo) && (
+                <a href={`/api/admin/documentos/${d.id}?ver=1`} target="_blank" rel="noopener" class="min-h-12 inline-flex items-center border border-primary text-primary px-4">Ver</a>
+              )}
+              <a href={`/api/admin/documentos/${d.id}`} class="min-h-12 inline-flex items-center border border-primary text-primary px-4">Descargar</a>
+            </span>
+          </li>
+        ))}
+      </ul>
+    )}
+    <label for="subir" class="inline-flex min-h-12 cursor-pointer items-center border border-primary text-primary px-5 py-3 text-lg font-medium">Agregar archivos</label>
+    <input id="subir" type="file" multiple accept={ACCEPT} class="sr-only" />
+    <span class="ml-3 text-base text-neutral-600">PDF, fotos, Word o Excel · hasta 10 MB cada uno</span>
+    <p id="msg-docs" role="status" class="mt-2 text-lg text-neutral-700 min-h-7"></p>
+  </section>
 </AdminLayout>
 
 <script>
+  import { MAX_BYTES, TIPOS, extension } from '../../../lib/documentos';
+
   const form = document.querySelector<HTMLFormElement>('#form')!;
   const msg = document.querySelector<HTMLElement>('#msg')!;
   const guardar = document.querySelector<HTMLButtonElement>('#guardar')!;
@@ -167,4 +209,28 @@ const enlaceContacto = contacto.includes('@')
       }
     }),
   );
+  // Subir documentos a esta consulta: de a uno, para saber cuál falló.
+  const subir = document.querySelector<HTMLInputElement>('#subir')!;
+  const msgDocs = document.querySelector<HTMLElement>('#msg-docs')!;
+  subir.addEventListener('change', async () => {
+    const archivos = [...(subir.files ?? [])];
+    subir.value = '';
+    const errores: string[] = [];
+    let subidos = 0;
+    for (const [i, f] of archivos.entries()) {
+      if (!(extension(f.name) in TIPOS)) { errores.push(`${f.name}: tipo no permitido`); continue; }
+      if (f.size > MAX_BYTES) { errores.push(`${f.name}: supera los 10 MB`); continue; }
+      msgDocs.textContent = `Subiendo ${i + 1} de ${archivos.length}…`;
+      const datos = new FormData();
+      datos.append('archivo', f);
+      const res = await fetch(`/api/admin/fichas/${form.dataset.id}/documentos`, { method: 'POST', body: datos }).catch(() => null);
+      if (res?.ok) subidos++;
+      else errores.push(`${f.name}: ${(await res?.json().catch(() => ({})))?.error ?? 'no se pudo subir'}`);
+    }
+    if (errores.length === 0) {
+      location.reload();
+      return;
+    }
+    msgDocs.textContent = `${subidos ? `${subidos} subido(s). ` : ''}${errores.join(' · ')}`;
+  });
 </script>

@@ -504,6 +504,13 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
   mayusculas). **Las fechas se leen con `getUTC*`**: la libreria devuelve
   medianoche UTC y con la hora local de Argentina (UTC-3) el 25 pasa a ser 24.
   Tope de 500 filas y 5 MB. Exportar y volver a importar no pierde datos.
+- **Adjuntos**: bucket R2 privado `escribania-tocagni-docs` (binding `DOCS`,
+  creado el 2026-10-22). Se suben de a uno a `/api/admin/fichas/[id]/documentos`
+  (desde Nueva consulta o desde la ficha) y se sirven solo por
+  `/api/admin/documentos/[id]`, detras de Access; cada vista queda en auditoria.
+  Tipos por **extension** (`src/lib/documentos.ts`: pdf, fotos, Word, Excel),
+  tope de 10 MB. No hay borrado a proposito. En `curl` hay que mandar `Origin`
+  (proteccion CSRF de Astro); un navegador lo manda solo.
 - **Local**: el binding `EMAIL` se simula (no sale ningun mail; el contenido se
   guarda en `.wrangler/tmp/email`). `AI` siempre pega a Cloudflare (cobra poco).
   Typecheck: `pnpm --package=typescript@5 dlx tsc --noEmit` (el build de Astro

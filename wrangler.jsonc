@@ -25,6 +25,9 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Archivos adjuntos de las consultas (PDF, fotos). Bucket privado: solo se
+  // sirven a través de /api/admin/documentos, detrás de Access.
+  "r2_buckets": [{ "binding": "DOCS", "bucket_name": "escribania-tocagni-docs" }],
   // Transcripción de voz (Whisper) para el dictado del panel.
   "ai": { "binding": "AI" },
   // Salida de mails (src/lib/notificar.ts). Reemplaza a una API key externa.
