@@ -8,13 +8,14 @@ export const prerender = false;
 
 const hoy = hoyAR();
 
-interface FilaFicha { id: string; creada: string; nombre: string | null; servicio: string | null; urgencia: string; estado: Estado; resumen: string | null }
+interface FilaFicha { id: string; creada: string; nombre: string | null; servicio: string | null; urgencia: string; estado: Estado; resumen: string | null; origen: string | null }
 interface FilaVenc { id: string; concepto: string; vence: string; ficha_id: string | null }
 interface FilaTurno { id: string; inicio: string; motivo: string | null; nombre: string | null }
+interface FilaActividad { cuando: string; actor: string; accion: string; entidad: string | null; ref: string | null; detalle: string | null }
 
-const [fichas, vencimientos, turnos] = await Promise.all([
+const [fichas, vencimientos, turnos, actividad] = await Promise.all([
   env.DB.prepare(
-    `SELECT id, creada, nombre, servicio, urgencia, estado, resumen FROM fichas
+    `SELECT id, creada, nombre, servicio, urgencia, estado, resumen, origen FROM fichas
      WHERE estado != 'cerrada'
      ORDER BY CASE urgencia WHEN 'alta' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END, creada DESC LIMIT 30`,
   ).all<FilaFicha>(),
@@ -27,32 +28,169 @@ const [fichas, vencimientos, turnos] = await Promise.all([
     `SELECT t.id, t.inicio, t.motivo, f.nombre FROM turnos t LEFT JOIN fichas f ON f.id = t.ficha_id
      WHERE t.estado != 'cancelado' AND substr(t.inicio, 1, 10) = ? ORDER BY t.inicio`,
   ).bind(hoy).all<FilaTurno>(),
+  env.DB.prepare(
+    `SELECT cuando, actor, accion, entidad, ref, detalle FROM auditoria
+     WHERE accion != 'acceso_denegado' ORDER BY id DESC LIMIT 8`,
+  ).all<FilaActividad>(),
 ]);
 
 const nuevas = fichas.results.filter((f) => f.estado === 'nueva').length;
+const enCurso = fichas.results.filter((f) => f.estado === 'en_curso').length;
 const urgentes = vencimientos.results.filter((v) => semaforo(v.vence).nivel === 'rojo').length;
+
+// Saludo y fecha en hora de Buenos Aires (el Worker corre en UTC).
+const horaAR = Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()));
+const saludo = horaAR < 6 ? 'Buenas noches' : horaAR < 13 ? 'Buenos días' : horaAR < 20 ? 'Buenas tardes' : 'Buenas noches';
+const fechaLarga = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+
+const quien = (actor: string) => (actor.includes('@') ? actor.split('@')[0] : actor);
+function describir(a: FilaActividad): { texto: string; tono: 'normal' | 'alerta' } {
+  const det = a.detalle ? (JSON.parse(a.detalle) as Record<string, number>) : {};
+  switch (a.accion) {
+    case 'ficha_creada':
+      return { texto: a.actor === 'chat-web' ? 'Consulta nueva desde el chat del sitio' : `Consulta cargada por ${quien(a.actor)}`, tono: 'normal' };
+    case 'aviso_enviado':
+      return { texto: 'Aviso por mail enviado al estudio', tono: 'normal' };
+    case 'aviso_fallido':
+      return { texto: 'No se pudo enviar el aviso por mail', tono: 'alerta' };
+    case 'ficha_editada':
+      return { texto: `Consulta actualizada por ${quien(a.actor)}`, tono: 'normal' };
+    case 'vencimiento_creado':
+      return { texto: `Vencimiento agregado por ${quien(a.actor)}`, tono: 'normal' };
+    case 'importacion':
+      return { texto: `Planilla importada${det.importadas != null ? ` · ${det.importadas} filas` : ''}`, tono: 'normal' };
+    case 'exportacion':
+      return { texto: 'Planilla exportada', tono: 'normal' };
+    default:
+      return { texto: a.accion.startsWith('vencimiento_') ? `Vencimiento ${a.accion.slice(12)}` : a.accion.replace(/_/g, ' '), tono: 'normal' };
+  }
+}
+
+const tarjeta = 'bg-white rounded-2xl border border-neutral-200 shadow-sm';
+const filtros: { valor: 'todas' | Estado; texto: string }[] = [
+  { valor: 'todas', texto: 'Todas' },
+  { valor: 'nueva', texto: 'Nuevas' },
+  { valor: 'en_curso', texto: 'En curso' },
+  { valor: 'esperando_documentacion', texto: 'Esperando documentación' },
+];
 ---
 
-<AdminLayout title="Resumen">
-  <h1 class="font-serif text-3xl md:text-4xl text-primary tracking-tight">Hoy</h1>
-  <div class="w-16 h-px bg-accent mt-4 mb-4"></div>
-  <p class="text-lg text-neutral-600 mb-8">
-    {nuevas === 0 ? 'No hay consultas nuevas' : nuevas === 1 ? '1 consulta nueva' : `${nuevas} consultas nuevas`}{' '}
-    · {turnos.results.length === 0 ? 'sin turnos' : turnos.results.length === 1 ? '1 turno' : `${turnos.results.length} turnos`} hoy
-    {urgentes > 0 && <span class="text-red-700 font-medium"> · {urgentes === 1 ? '1 vencimiento urgente' : `${urgentes} vencimientos urgentes`}</span>}
-  </p>
+<AdminLayout title="Inicio">
+  <header class="mb-8">
+    <p class="text-base text-neutral-600 first-letter:uppercase">{fechaLarga}</p>
+    <h1 class="text-3xl md:text-4xl font-semibold text-primary tracking-tight mt-1">{saludo}</h1>
+  </header>
 
-  <div class="grid gap-10 lg:grid-cols-2">
-    <div class="space-y-10">
-      <section aria-labelledby="h-turnos">
-        <h2 id="h-turnos" class="text-base uppercase tracking-[0.25em] text-neutral-600 mb-3">Turnos de hoy</h2>
+  {/* Acciones principales: lo que más se hace, a un toque. */}
+  <section aria-label="Acciones" class="grid gap-3 sm:grid-cols-3 mb-8">
+    <a href="/admin/nueva" class="group flex items-center gap-4 rounded-2xl bg-primary text-white p-5 shadow-sm transition hover:bg-primary-light hover:-translate-y-0.5">
+      <span class="grid place-items-center w-12 h-12 rounded-xl bg-white/12 shrink-0">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      </span>
+      <span>
+        <span class="block text-lg font-semibold">Dictar una consulta</span>
+        <span class="block text-sm text-white/70">Hablás y queda la ficha</span>
+      </span>
+    </a>
+    <a href="/admin/nueva" class={`${tarjeta} flex items-center gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-md`}>
+      <span class="grid place-items-center w-12 h-12 rounded-xl bg-accent/15 text-accent-dark shrink-0">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </span>
+      <span>
+        <span class="block text-lg font-semibold text-primary">Nueva consulta</span>
+        <span class="block text-sm text-neutral-600">Cargarla a mano</span>
+      </span>
+    </a>
+    <a href="/admin/excel" class={`${tarjeta} flex items-center gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-md`}>
+      <span class="grid place-items-center w-12 h-12 rounded-xl bg-primary/8 text-primary shrink-0">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg>
+      </span>
+      <span>
+        <span class="block text-lg font-semibold text-primary">Importar Excel</span>
+        <span class="block text-sm text-neutral-600">Traé tu planilla actual</span>
+      </span>
+    </a>
+  </section>
+
+  {/* Números del día. */}
+  <section aria-label="Resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+    {[
+      { n: nuevas, t: nuevas === 1 ? 'Consulta nueva' : 'Consultas nuevas', alerta: false },
+      { n: enCurso, t: 'En curso', alerta: false },
+      { n: urgentes, t: urgentes === 1 ? 'Vencimiento urgente' : 'Vencimientos urgentes', alerta: urgentes > 0 },
+      { n: turnos.results.length, t: turnos.results.length === 1 ? 'Turno hoy' : 'Turnos hoy', alerta: false },
+    ].map((s) => (
+      <div class={`${tarjeta} p-5`}>
+        <p class={`text-4xl font-semibold tabular-nums ${s.alerta ? 'text-red-700' : 'text-primary'}`}>{s.n}</p>
+        <p class="mt-1 text-base text-neutral-600">{s.t}</p>
+      </div>
+    ))}
+  </section>
+
+  <div class="grid gap-6 lg:grid-cols-5">
+    {/* Consultas abiertas, con búsqueda y filtro por estado (sin recargar). */}
+    <section aria-labelledby="h-consultas" class={`${tarjeta} lg:col-span-3 p-5 md:p-6`}>
+      <h2 id="h-consultas" class="text-xl font-semibold text-primary">Consultas abiertas</h2>
+      {fichas.results.length === 0 ? (
+        <div class="mt-4 rounded-xl bg-neutral-50 border border-dashed border-neutral-300 p-6 text-center">
+          <p class="text-lg font-medium text-primary">Todavía no hay consultas</p>
+          <p class="mt-1 text-base text-neutral-600 max-w-md mx-auto">
+            Acá van a aparecer las que lleguen por el chat del sitio (cada una te avisa por mail) y las que cargues vos.
+          </p>
+          <a href="/admin/nueva" class="mt-4 inline-block rounded-xl bg-primary text-white px-5 py-3 text-base font-medium">Cargar la primera</a>
+        </div>
+      ) : (
+        <>
+          <input
+            id="buscar"
+            type="search"
+            placeholder="Buscar por nombre o detalle"
+            aria-label="Buscar consultas"
+            class="mt-4 w-full rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-base"
+          />
+          <div id="filtros" class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado">
+            {filtros.map((f, i) => (
+              <button type="button" data-filtro={f.valor} aria-pressed={i === 0 ? 'true' : 'false'}
+                class="rounded-full border border-neutral-300 px-4 py-1.5 text-base text-neutral-700 aria-pressed:bg-primary aria-pressed:border-primary aria-pressed:text-white transition-colors">
+                {f.texto}
+              </button>
+            ))}
+          </div>
+          <ul id="lista" class="mt-3 divide-y divide-neutral-200">
+            {fichas.results.map((f) => (
+              <li data-estado={f.estado} data-texto={`${f.nombre ?? ''} ${f.resumen ?? ''}`.toLowerCase()}>
+                <a href={`/admin/fichas/${f.id}`} class="block -mx-3 px-3 py-3.5 rounded-xl min-h-14 transition-colors hover:bg-neutral-50">
+                  <span class="flex items-baseline justify-between gap-3 text-lg">
+                    <span class="font-medium text-neutral-900">
+                      {f.urgencia === 'alta' && <span class="text-red-700" title="Urgente">● </span>}{f.nombre ?? 'Sin nombre'}
+                    </span>
+                    <span class="text-sm text-neutral-600 shrink-0">{haceCuanto(f.creada)}</span>
+                  </span>
+                  {f.resumen && <span class="block text-base text-neutral-600 line-clamp-1">{f.resumen}</span>}
+                  <span class="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
+                    <span class={`rounded-full px-2.5 py-0.5 ${claseEstado[f.estado]}`}>{ESTADOS[f.estado]}</span>
+                    {f.origen === 'chat' && <span class="rounded-full px-2.5 py-0.5 bg-neutral-100 text-neutral-600">Desde el chat</span>}
+                    {nombreServicio(f.servicio) && <span class="text-neutral-600">{nombreServicio(f.servicio)}</span>}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p id="sin-resultados" class="hidden mt-4 text-base text-neutral-600">Ninguna consulta coincide con la búsqueda.</p>
+        </>
+      )}
+    </section>
+
+    <div class="lg:col-span-2 space-y-6">
+      <section aria-labelledby="h-turnos" class={`${tarjeta} p-5 md:p-6`}>
+        <h2 id="h-turnos" class="text-xl font-semibold text-primary">Turnos de hoy</h2>
         {turnos.results.length === 0 ? (
-          <p class="text-lg text-neutral-600">No hay turnos para hoy.</p>
+          <p class="mt-3 text-base text-neutral-600">Sin turnos para hoy.</p>
         ) : (
-          <ul class="divide-y divide-neutral-200 border-y border-neutral-200">
+          <ul class="mt-3 space-y-2">
             {turnos.results.map((t) => (
-              <li class="py-3 flex gap-4 text-lg">
-                <span class="font-medium text-primary tabular-nums">{hora(t.inicio)}</span>
+              <li class="flex gap-4 text-lg">
+                <span class="font-semibold text-primary tabular-nums">{hora(t.inicio)}</span>
                 <span class="flex-1">{t.nombre ?? t.motivo ?? 'Turno'}</span>
               </li>
             ))}
@@ -60,12 +198,12 @@ const urgentes = vencimientos.results.filter((v) => semaforo(v.vence).nivel === 
         )}
       </section>
 
-      <section aria-labelledby="h-venc">
-        <h2 id="h-venc" class="text-base uppercase tracking-[0.25em] text-neutral-600 mb-3">Vencimientos</h2>
+      <section aria-labelledby="h-venc" class={`${tarjeta} p-5 md:p-6`}>
+        <h2 id="h-venc" class="text-xl font-semibold text-primary">Vencimientos</h2>
         {vencimientos.results.length === 0 ? (
-          <p class="text-lg text-neutral-600">Nada vence en los próximos 30 días.</p>
+          <p class="mt-3 text-base text-neutral-600">Nada vence en los próximos 30 días. Los plazos que cargues en una consulta aparecen acá con semáforo.</p>
         ) : (
-          <ul class="divide-y divide-neutral-200 border-y border-neutral-200">
+          <ul class="mt-2 divide-y divide-neutral-200">
             {vencimientos.results.map((v) => {
               const s = semaforo(v.vence);
               return (
@@ -75,7 +213,7 @@ const urgentes = vencimientos.results.filter((v) => semaforo(v.vence).nivel === 
                     <span class="flex-1">{v.concepto}</span>
                     <span class="text-right text-base shrink-0">
                       <span class={s.nivel === 'rojo' ? 'block font-medium text-red-700' : 'block text-neutral-700'}>{s.texto}</span>
-                      <span class="block text-neutral-600">{fechaCorta(v.vence)}</span>
+                      <span class="block text-sm text-neutral-600">{fechaCorta(v.vence)}</span>
                     </span>
                   </a>
                 </li>
@@ -84,33 +222,57 @@ const urgentes = vencimientos.results.filter((v) => semaforo(v.vence).nivel === 
           </ul>
         )}
       </section>
-    </div>
 
-    <section aria-labelledby="h-consultas">
-      <h2 id="h-consultas" class="text-base uppercase tracking-[0.25em] text-neutral-600 mb-3">Consultas abiertas</h2>
-      {fichas.results.length === 0 ? (
-        <p class="text-lg text-neutral-600">Todavía no hay consultas. <a class="underline text-primary" href="/admin/nueva">Cargar una</a>.</p>
-      ) : (
-        <ul class="divide-y divide-neutral-200 border-y border-neutral-200">
-          {fichas.results.map((f) => (
-            <li>
-              <a href={`/admin/fichas/${f.id}`} class="block py-3 min-h-14">
-                <span class="flex items-baseline justify-between gap-3 text-lg">
-                  <span class="font-medium text-neutral-800">
-                    {f.urgencia === 'alta' && <span class="text-red-700" title="Urgente">● </span>}{f.nombre ?? 'Sin nombre'}
-                  </span>
-                  <span class="text-base text-neutral-600 shrink-0">{haceCuanto(f.creada)}</span>
-                </span>
-                {f.resumen && <span class="block text-base text-neutral-600 line-clamp-1">{f.resumen}</span>}
-                <span class="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
-                  <span class={`px-2 py-0.5 ${claseEstado[f.estado]}`}>{ESTADOS[f.estado]}</span>
-                  {nombreServicio(f.servicio) && <span class="text-neutral-600">{nombreServicio(f.servicio)}</span>}
-                </span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+      <section aria-labelledby="h-act" class={`${tarjeta} p-5 md:p-6`}>
+        <h2 id="h-act" class="text-xl font-semibold text-primary">Actividad reciente</h2>
+        {actividad.results.length === 0 ? (
+          <p class="mt-3 text-base text-neutral-600">Todo lo que pase en el panel y en el chat queda registrado acá.</p>
+        ) : (
+          <ul class="mt-3 space-y-3">
+            {actividad.results.map((a) => {
+              const d = describir(a);
+              const href = a.entidad === 'ficha' && a.ref ? `/admin/fichas/${a.ref}` : null;
+              const contenido = (
+                <>
+                  <span class={`mt-2 w-2 h-2 rounded-full shrink-0 ${d.tono === 'alerta' ? 'bg-red-600' : 'bg-accent'}`} aria-hidden="true"></span>
+                  <span class="flex-1 text-base">{d.texto}</span>
+                  <span class="text-sm text-neutral-500 shrink-0">{haceCuanto(a.cuando)}</span>
+                </>
+              );
+              return <li>{href ? <a href={href} class="flex items-start gap-3 hover:text-primary">{contenido}</a> : <div class="flex items-start gap-3">{contenido}</div>}</li>;
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
   </div>
+
+  <script is:inline>
+    (() => {
+      const lista = document.getElementById('lista');
+      if (!lista) return;
+      const buscar = document.getElementById('buscar');
+      const vacio = document.getElementById('sin-resultados');
+      const botones = [...document.querySelectorAll('#filtros button')];
+      let filtro = 'todas';
+      const aplicar = () => {
+        const q = buscar.value.trim().toLowerCase();
+        let visibles = 0;
+        for (const li of lista.children) {
+          const ok = (filtro === 'todas' || li.dataset.estado === filtro) && li.dataset.texto.includes(q);
+          li.hidden = !ok;
+          if (ok) visibles++;
+        }
+        vacio.classList.toggle('hidden', visibles > 0);
+      };
+      buscar.addEventListener('input', aplicar);
+      for (const b of botones) {
+        b.addEventListener('click', () => {
+          filtro = b.dataset.filtro;
+          for (const o of botones) o.setAttribute('aria-pressed', String(o === b));
+          aplicar();
+        });
+      }
+    })();
+  </script>
 </AdminLayout>
