@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { whatsappUrl } from '../data/contacto';
+import FormularioConsulta, { type DatosConsulta } from './FormularioConsulta';
 
 // Un solo transporte para toda la vida del widget.
 const transport = new DefaultChatTransport({ api: '/api/chat' });
@@ -154,25 +155,36 @@ export default function ChatWidget({ sugerencias }: Props) {
                 const texto = m.parts
                   .map((p) => (p.type === 'text' ? p.text : ''))
                   .join('');
-                if (!texto) return null;
+                // El asistente ofrece dejar los datos: se dibuja el formulario
+                // (los argumentos de la herramienta son solo la clasificación).
+                const registro = m.parts.find(
+                  (p): p is typeof p & { input: DatosConsulta } =>
+                    p.type === 'tool-ofrecer_registro' && 'state' in p && p.state === 'output-available',
+                );
+                if (!texto && !registro) return null;
                 return (
-                  <div key={m.id} className={esUsuario ? 'flex flex-col items-end' : 'flex flex-col items-start'}>
-                    <span
-                      className={`text-[0.65rem] tracking-[0.25em] uppercase font-medium mb-1 ${
-                        esUsuario ? 'text-neutral-400' : 'text-accent-dark'
-                      }`}
-                    >
-                      {esUsuario ? 'Vos' : 'Asistente'}
-                    </span>
-                    <div
-                      className={`max-w-[85%] px-4 py-3 text-base leading-relaxed whitespace-pre-wrap rounded-2xl ${
-                        esUsuario
-                          ? 'bg-primary text-white/90 rounded-br-md'
-                          : 'bg-white border border-neutral-200 text-neutral-700 rounded-bl-md'
-                      }`}
-                    >
-                      {texto}
-                    </div>
+                  <div key={m.id} className="space-y-3">
+                    {texto && (
+                      <div className={esUsuario ? 'flex flex-col items-end' : 'flex flex-col items-start'}>
+                        <span
+                          className={`text-[0.65rem] tracking-[0.25em] uppercase font-medium mb-1 ${
+                            esUsuario ? 'text-neutral-400' : 'text-accent-dark'
+                          }`}
+                        >
+                          {esUsuario ? 'Vos' : 'Asistente'}
+                        </span>
+                        <div
+                          className={`max-w-[85%] px-4 py-3 text-base leading-relaxed whitespace-pre-wrap rounded-2xl ${
+                            esUsuario
+                              ? 'bg-primary text-white/90 rounded-br-md'
+                              : 'bg-white border border-neutral-200 text-neutral-700 rounded-bl-md'
+                          }`}
+                        >
+                          {texto}
+                        </div>
+                      </div>
+                    )}
+                    {registro && <FormularioConsulta datos={registro.input} />}
                   </div>
                 );
               })

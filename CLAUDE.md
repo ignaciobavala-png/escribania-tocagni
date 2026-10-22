@@ -484,9 +484,29 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
 - **Mail**: binding `EMAIL` (Cloudflare Email Sending), siempre via
   `src/lib/notificar.ts`. No hay API key.
 - **Auditoria**: `src/lib/auditoria.ts`, solo agregar.
-- **Pendiente antes de deployar**: crear la base remota (`wrangler d1 create`) y
-  poner su `database_id` real en `wrangler.jsonc` (hoy es un placeholder, solo
-  sirve en local); incorporar el dominio a Email Sending; crear la app en Access.
+- **Consulta del chat -> ficha -> mail**: el modelo NO recibe datos personales.
+  Llama a la herramienta `ofrecer_registro` (en `api/chat.ts`; solo clasifica:
+  servicio, urgencia, resumen) y el widget dibuja `FormularioConsulta.tsx`, que
+  pide nombre y contacto y los manda directo a `/api/consulta` (publico: campo
+  trampa, tope de 15 fichas/hora, validacion). Ese endpoint crea la ficha
+  (`origen='chat'`), audita y avisa al estudio por mail. Si el mail falla, la
+  ficha queda igual (`aviso_fallido` en auditoria).
+- **PWA**: `public/panel.webmanifest` (fuera de `/admin` a proposito, para que
+  Access no lo bloquee), `public/admin/sw.js` (solo pantalla offline; NO cachea
+  datos de clientes). Dictado: `/api/admin/dictar` (Whisper en Workers AI, sin
+  `initial_prompt`: con audio sin voz devolvia el prompt como si se hubiera dicho).
+- **Local**: el binding `EMAIL` se simula (no sale ningun mail; el contenido se
+  guarda en `.wrangler/tmp/email`). `AI` siempre pega a Cloudflare (cobra poco).
+  Typecheck: `pnpm --package=typescript@5 dlx tsc --noEmit` (el build de Astro
+  no chequea tipos).
+- **Recursos en Cloudflare** (cuenta Neo Nach, `CLOUDFLARE_ACCOUNT_ID=0b9fa37f...`;
+  hay tres cuentas, wrangler necesita ese env): D1 `escribania-tocagni` creada y
+  migrada el 2026-10-22; Email Sending habilitado para `escribaniatocagni.com`.
+  Usuarios cargados en remoto: desarrollador (Ignacio) y recepcion
+  (`administracion@`); **falta el de Ines**.
+- **Pendiente antes de deployar**: crear la app de Access (paths `/admin*` y
+  `/api/admin*`) y cargar `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` en `wrangler.jsonc`;
+  sin eso `/admin` queda cerrado en produccion (a proposito).
 
 ## Desarrollo
 
