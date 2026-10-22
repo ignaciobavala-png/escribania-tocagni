@@ -3,67 +3,126 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
 export const prerender = false;
 
-const boton = 'border border-primary text-primary px-5 py-4 text-lg font-medium min-h-14 disabled:opacity-50';
+const exportables = [
+  { tipo: 'fichas', titulo: 'Consultas', detalle: 'Todo lo cargado: contacto, trámite, urgencia y estado.', icono: '<path d="M4 6h16M4 12h16M4 18h10"/>' },
+  { tipo: 'vencimientos', titulo: 'Vencimientos', detalle: 'Plazos abiertos y resueltos, con su fecha.', icono: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
+];
 ---
 
 <AdminLayout title="Excel">
-  <h1 class="font-serif text-3xl md:text-4xl text-primary tracking-tight">Excel</h1>
-  <div class="w-16 h-px bg-accent mt-4 mb-8"></div>
+  <div slot="fondo" class="fondo" aria-hidden="true">
+    <span class="halo halo-a"></span>
+    <span class="halo halo-b"></span>
+  </div>
 
-  <div class="grid gap-12 lg:grid-cols-2">
-    <section aria-labelledby="h-exp" class="space-y-4">
-      <h2 id="h-exp" class="text-base uppercase tracking-[0.25em] text-neutral-600">Descargar</h2>
-      <p class="text-lg text-neutral-700">Bajá todo lo cargado en una planilla. Después se puede volver a importar.</p>
-      <div class="flex flex-col sm:flex-row gap-3">
-        <button type="button" data-exportar="fichas" class={boton}>Consultas (.xlsx)</button>
-        <button type="button" data-exportar="vencimientos" class={boton}>Vencimientos (.xlsx)</button>
+  <header class="mb-6 rise">
+    <h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-primary">Excel</h1>
+    <p class="mt-2 text-lg text-neutral-600 max-w-2xl">
+      Traé la planilla que ya usan y entiendo las columnas por vos. También podés bajar todo cuando quieras.
+    </p>
+  </header>
+
+  <div class="grid gap-5 lg:grid-cols-5 items-start">
+    {/* Importar: lo principal. */}
+    <section aria-labelledby="h-imp" class="glass rounded-3xl lg:col-span-3 p-5 md:p-7 rise" style="--d:60ms">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="h-imp" class="text-xl font-semibold text-primary">Importar una planilla</h2>
+        <span class="inline-flex items-center gap-2 rounded-full bg-emerald-600/10 px-3 py-1 text-sm font-medium text-emerald-900">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          Se lee en tu dispositivo
+        </span>
       </div>
-      <p class="text-base text-neutral-600">
-        ¿Primera vez? Plantillas vacías:
-        <button type="button" data-plantilla="fichas" class="underline text-primary">consultas</button> ·
-        <button type="button" data-plantilla="vencimientos" class="underline text-primary">vencimientos</button>
+
+      <fieldset class="mt-5">
+        <legend class="text-sm font-medium text-neutral-700">¿Qué estás importando?</legend>
+        <div class="mt-1.5 grid grid-cols-2 gap-1 rounded-2xl bg-white/50 p-1">
+          <label class="cursor-pointer">
+            <input type="radio" name="tipo" value="fichas" checked class="peer sr-only" />
+            <span class="block rounded-xl py-2.5 text-center text-base text-neutral-700 transition peer-checked:bg-white peer-checked:font-semibold peer-checked:text-primary peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-accent">Consultas</span>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="tipo" value="vencimientos" class="peer sr-only" />
+            <span class="block rounded-xl py-2.5 text-center text-base text-neutral-700 transition peer-checked:bg-white peer-checked:font-semibold peer-checked:text-primary peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-accent">Vencimientos</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <label id="zona" for="archivo"
+        class="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-neutral-300/90 bg-white/40 px-6 py-10 text-center transition-colors hover:border-primary data-[sobre=true]:border-primary data-[sobre=true]:bg-primary/5">
+        <svg class="w-10 h-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg>
+        <span class="text-xl font-semibold text-primary">Soltá acá tu planilla</span>
+        <span class="text-base text-neutral-600">o tocá para elegirla · formato .xlsx · hasta 5 MB</span>
+      </label>
+      <input id="archivo" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="sr-only" />
+      <p class="mt-3 text-sm text-neutral-500">¿Tenés un .xls viejo? Abrilo en Excel y guardalo como .xlsx.</p>
+      <p id="leyendo" role="status" class="mt-3 hidden items-center gap-2 text-base font-medium text-primary">
+        <span class="punto-vivo" aria-hidden="true"></span>Entendiendo la planilla…
       </p>
-      <p id="msg-exp" role="status" class="text-lg text-neutral-700 min-h-7"></p>
     </section>
 
-    <section aria-labelledby="h-imp" class="space-y-4">
-      <h2 id="h-imp" class="text-base uppercase tracking-[0.25em] text-neutral-600">Importar</h2>
-      <p class="text-lg text-neutral-700">
-        Subí tu planilla. Antes de guardar nada vas a ver qué se entendió. El archivo se lee en tu
-        dispositivo: no se envía a ningún lado hasta que confirmes.
+    {/* Exportar. */}
+    <section aria-labelledby="h-exp" class="lg:col-span-2 space-y-4">
+      <h2 id="h-exp" class="sr-only">Descargar</h2>
+      {exportables.map((e, i) => (
+        <div class="glass rounded-3xl p-5 md:p-6 rise" style={`--d:${140 + i * 70}ms`}>
+          <div class="flex items-start gap-4">
+            <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/8 text-primary">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={e.icono} />
+            </span>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-lg font-semibold text-primary">{e.titulo}</h3>
+              <p class="text-base text-neutral-600">{e.detalle}</p>
+            </div>
+          </div>
+          <button type="button" data-exportar={e.tipo}
+            class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-white/70 py-3 text-base font-medium text-primary transition hover:bg-white disabled:opacity-50">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 18v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1"/></svg>
+            Descargar .xlsx
+          </button>
+        </div>
+      ))}
+      <p class="px-1 text-base text-neutral-600">
+        ¿Primera vez? Bajá una plantilla vacía de{' '}
+        <button type="button" data-plantilla="fichas" class="text-primary underline">consultas</button> o de{' '}
+        <button type="button" data-plantilla="vencimientos" class="text-primary underline">vencimientos</button>.
       </p>
-      <fieldset class="flex gap-6 text-lg">
-        <legend class="sr-only">Qué estás importando</legend>
-        <label class="flex items-center gap-2 min-h-12"><input type="radio" name="tipo" value="fichas" checked class="w-5 h-5" /> Consultas</label>
-        <label class="flex items-center gap-2 min-h-12"><input type="radio" name="tipo" value="vencimientos" class="w-5 h-5" /> Vencimientos</label>
-      </fieldset>
-      <label class="block">
-        <span class="sr-only">Archivo de Excel</span>
-        <input id="archivo" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="block w-full text-lg border border-neutral-300 bg-white p-3" />
-      </label>
-      <p class="text-base text-neutral-600">Formato .xlsx. Si tenés un .xls viejo, abrilo en Excel y guardalo como .xlsx.</p>
+      <p id="msg-exp" role="status" class="px-1 text-base text-neutral-700 min-h-6"></p>
     </section>
   </div>
 
-  <p id="resultado" role="status" class="mt-10 text-xl text-emerald-900 border-l-4 border-emerald-600 bg-emerald-50 px-4 py-3 hidden"></p>
+  <p id="resultado" role="status" class="mt-6 hidden rounded-3xl border border-emerald-600/30 bg-emerald-50/80 px-6 py-4 text-lg font-medium text-emerald-900"></p>
 
-  <section id="vista" class="mt-12 hidden" aria-live="polite">
-    <h2 class="font-serif text-2xl text-primary tracking-tight">Vista previa</h2>
-    <p id="resumen" class="mt-3 text-lg text-neutral-800"></p>
-    <ul id="avisos-gen" class="mt-3 space-y-1 text-base text-neutral-700"></ul>
-    <div class="mt-5 overflow-x-auto border border-neutral-200 bg-white">
+  {/* Vista previa: se muestra al leer la planilla, antes de guardar nada. */}
+  <section id="vista" class="glass rounded-3xl mt-6 hidden p-5 md:p-7" aria-live="polite" aria-labelledby="h-vista">
+    <h2 id="h-vista" class="text-xl font-semibold text-primary"><span class="text-accent-dark" aria-hidden="true">✦</span> Esto es lo que entendí</h2>
+    <p id="nombre-arch" class="mt-1 text-sm text-neutral-600"></p>
+    <div id="resumen" class="mt-4 flex flex-wrap gap-3"></div>
+    <div id="avisos-gen" class="mt-4 space-y-2 text-base text-neutral-700"></div>
+    <div class="mt-5 overflow-x-auto rounded-2xl border border-white/80 bg-white/70">
       <table class="w-full text-left text-base">
-        <thead id="thead" class="bg-neutral-100 text-neutral-600"></thead>
-        <tbody id="tbody" class="divide-y divide-neutral-200"></tbody>
+        <thead id="thead" class="bg-white/70 text-sm uppercase tracking-wider text-neutral-600"></thead>
+        <tbody id="tbody" class="divide-y divide-white/80"></tbody>
       </table>
     </div>
     <p id="recorte" class="mt-2 text-base text-neutral-600"></p>
     <div class="mt-6 flex flex-col sm:flex-row gap-3">
-      <button type="button" id="confirmar" class="bg-primary text-white px-6 py-4 text-lg font-medium min-h-14 disabled:opacity-50"></button>
-      <button type="button" id="cancelar" class={boton}>Cancelar</button>
+      <button type="button" id="confirmar" class="rounded-2xl bg-primary px-7 py-4 text-lg font-semibold text-white shadow-lg shadow-primary/20 transition hover:bg-primary-light disabled:opacity-40 disabled:shadow-none"></button>
+      <button type="button" id="cancelar" class="rounded-2xl border border-neutral-300 bg-white/60 px-6 py-4 text-lg text-neutral-700 transition hover:bg-white">Cancelar</button>
     </div>
     <p id="msg-imp" role="status" class="mt-4 text-lg text-neutral-800 min-h-7"></p>
   </section>
+
+  {/* Se muestra al arrastrar una planilla sobre la pantalla. */}
+  <div id="soltar" class="fixed inset-0 z-50 hidden place-items-center bg-primary/50 backdrop-blur-sm">
+    <p class="rounded-3xl bg-white px-10 py-8 text-2xl font-semibold text-primary shadow-2xl">Soltá la planilla para importarla</p>
+  </div>
+
+  <style is:global>
+    .punto-vivo { position: relative; width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: #b8944c; }
+    .punto-vivo::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: inherit; animation: ex-onda 1.4s ease-out infinite; }
+    @keyframes ex-onda { to { transform: scale(3.2); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .punto-vivo::after { animation: none; } }
+  </style>
 </AdminLayout>
 
 <script>
@@ -142,6 +201,10 @@ const boton = 'border border-primary text-primary px-5 py-4 text-lg font-medium 
 
   const vista = $('#vista');
   const archivo = $<HTMLInputElement>('#archivo');
+  const zona = $('#zona');
+  const leyendo = $('#leyendo');
+  const soltar = $('#soltar');
+  let ultimoArchivo: File | null = null;
   const confirmar = $<HTMLButtonElement>('#confirmar');
   const msgImp = $('#msg-imp');
 
@@ -156,28 +219,57 @@ const boton = 'border border-primary text-primary px-5 py-4 text-lg font-medium 
     archivo.value = '';
     vista.classList.add('hidden');
     msgImp.textContent = '';
+    ultimoArchivo = null;
   }
   $('#cancelar').addEventListener('click', reiniciar);
 
-  archivo.addEventListener('change', async () => {
-    const f = archivo.files?.[0];
-    if (!f) return;
+  async function leer(f: File) {
+    ultimoArchivo = f;
     msgImp.textContent = '';
     resultado.classList.add('hidden');
+    if (!/\.xlsx$/i.test(f.name)) return mostrarError('Tiene que ser un archivo .xlsx.');
     if (f.size > MAX_BYTES) return mostrarError('El archivo es demasiado grande (máximo 5 MB).');
     tipoActual = (document.querySelector<HTMLInputElement>('input[name=tipo]:checked')!.value) as Tipo;
+    leyendo.classList.replace('hidden', 'flex');
     try {
       const datos = (await readSheet(f)) as Celda[][];
       lectura = (tipoActual === 'fichas' ? leerPlanilla('fichas', datos) : leerPlanilla('vencimientos', datos)) as Lect;
       pintar();
+      $('#nombre-arch').textContent = `${f.name} · ${Math.max(1, Math.round(f.size / 1024))} KB`;
+      vista.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch {
       mostrarError('No se pudo leer el archivo. Tiene que ser un .xlsx válido.');
+    } finally {
+      leyendo.classList.replace('flex', 'hidden');
     }
+  }
+
+  archivo.addEventListener('change', () => { const f = archivo.files?.[0]; if (f) leer(f); });
+  // Si se cambia entre Consultas y Vencimientos con una planilla cargada, se vuelve a leer.
+  document.querySelectorAll<HTMLInputElement>('input[name=tipo]').forEach((r) =>
+    r.addEventListener('change', () => { if (ultimoArchivo && !vista.classList.contains('hidden')) leer(ultimoArchivo); }),
+  );
+
+  // Soltar la planilla en cualquier parte de la pantalla.
+  const traeArchivos = (e: DragEvent) => [...(e.dataTransfer?.types ?? [])].includes('Files');
+  let profundidad = 0;
+  window.addEventListener('dragenter', (e) => { if (traeArchivos(e)) { profundidad++; soltar.classList.replace('hidden', 'grid'); zona.dataset.sobre = 'true'; } });
+  window.addEventListener('dragleave', (e) => { if (traeArchivos(e) && --profundidad <= 0) { profundidad = 0; soltar.classList.replace('grid', 'hidden'); zona.dataset.sobre = 'false'; } });
+  window.addEventListener('dragover', (e) => { if (traeArchivos(e)) e.preventDefault(); });
+  window.addEventListener('drop', (e) => {
+    if (!traeArchivos(e)) return;
+    e.preventDefault();
+    profundidad = 0;
+    soltar.classList.replace('grid', 'hidden');
+    zona.dataset.sobre = 'false';
+    const f = e.dataTransfer?.files?.[0];
+    if (f) leer(f);
   });
 
   function mostrarError(t: string) {
     vista.classList.remove('hidden');
-    $('#resumen').textContent = t;
+    $('#nombre-arch').textContent = '';
+    $('#resumen').innerHTML = `<p class="rounded-2xl bg-red-50 px-4 py-3 text-base font-medium text-red-800">${esc(t)}</p>`;
     $('#avisos-gen').innerHTML = '';
     $('#thead').innerHTML = '';
     $('#tbody').innerHTML = '';
@@ -193,37 +285,43 @@ const boton = 'border border-primary text-primary px-5 py-4 text-lg font-medium 
 
     vista.classList.remove('hidden');
     confirmar.classList.remove('hidden');
-    $('#resumen').textContent =
-      `${plural(validas.length, 'fila lista', 'filas listas')} para importar` +
-      (conError.length ? ` · ${plural(conError.length, 'con error (se omite)', 'con error (se omiten)')}` : '') +
-      (conAviso.length ? ` · ${plural(conAviso.length, 'con aviso', 'con avisos')}` : '');
+    const ficha = (n: number, t: string, clase: string) =>
+      `<div class="rounded-2xl bg-white/70 px-5 py-3"><p class="text-3xl font-semibold tabular-nums ${clase}">${n}</p><p class="text-sm text-neutral-600">${t}</p></div>`;
+    $('#resumen').innerHTML =
+      ficha(validas.length, validas.length === 1 ? 'fila lista' : 'filas listas', 'text-emerald-800') +
+      (conAviso.length ? ficha(conAviso.length, conAviso.length === 1 ? 'con aviso' : 'con avisos', 'text-amber-700') : '') +
+      (conError.length ? ficha(conError.length, conError.length === 1 ? 'con error (se omite)' : 'con error (se omiten)', 'text-red-700') : '');
 
-    const reco = Object.entries(l.columnas).filter(([, t]) => t).map(([c, t]) => `<strong>${esc(c)}</strong> ← “${esc(t)}”`);
-    const faltan = Object.entries(l.columnas).filter(([, t]) => !t).map(([c]) => c);
+    // Nombres de campo internos -> los que se ven en la pantalla.
+    const ETIQUETA: Record<string, string> = { nombre: 'Nombre', contacto: 'Contacto', servicio: 'Trámite', urgencia: 'Urgencia', estado: 'Estado', resumen: 'Detalle', concepto: 'Concepto', vence: 'Vence', cliente: 'Cliente' };
+    const nom = (c: string) => ETIQUETA[c] ?? c;
+    const reco = Object.entries(l.columnas).filter(([, t]) => t).map(([c, t]) => `<strong>${esc(nom(c))}</strong> ← “${esc(t)}”`);
+    const faltan = Object.entries(l.columnas).filter(([, t]) => !t).map(([c]) => nom(c));
+    const chip = (t: string) => `<span class="inline-flex items-center rounded-full bg-accent/15 px-3 py-1 text-sm text-accent-dark">${t}</span>`;
     $('#avisos-gen').innerHTML = [
-      reco.length && `<li>Columnas reconocidas: ${reco.join(', ')}.</li>`,
-      faltan.length && `<li>Sin columna para: ${faltan.map(esc).join(', ')}.</li>`,
-      l.ignoradas.length && `<li>Se ignoran: ${l.ignoradas.map((t) => `“${esc(t)}”`).join(', ')}.</li>`,
-      l.truncada && `<li class="text-red-700">La planilla tiene más de ${MAX_FILAS} filas: se leen solo las primeras ${MAX_FILAS}.</li>`,
+      reco.length && `<div class="flex flex-wrap items-center gap-2"><span class="text-neutral-600">Columnas que reconocí:</span>${reco.map(chip).join('')}</div>`,
+      faltan.length && `<p>Sin columna para: ${faltan.map(esc).join(', ')}.</p>`,
+      l.ignoradas.length && `<p>Se ignoran: ${l.ignoradas.map((t) => `“${esc(t)}”`).join(', ')}.</p>`,
+      l.truncada && `<p class="text-red-700">La planilla tiene más de ${MAX_FILAS} filas: se leen solo las primeras ${MAX_FILAS}.</p>`,
     ].filter(Boolean).join('');
 
     const cols = tipoActual === 'fichas' ? ['Nombre', 'Contacto', 'Trámite', 'Urgencia', 'Estado'] : ['Concepto', 'Vence', 'Cliente', 'Estado'];
-    $('#thead').innerHTML = `<tr><th class="px-3 py-2 font-medium">Fila</th><th class="px-3 py-2 font-medium">Resultado</th>${cols.map((c) => `<th class="px-3 py-2 font-medium">${c}</th>`).join('')}</tr>`;
+    $('#thead').innerHTML = `<tr><th class="px-4 py-3 font-medium">Fila</th><th class="px-4 py-3 font-medium">Resultado</th>${cols.map((c) => `<th class="px-4 py-3 font-medium">${c}</th>`).join('')}</tr>`;
 
     const MOSTRAR = 50;
     $('#tbody').innerHTML = l.filas.slice(0, MOSTRAR).map((f) => {
       const v = f.valores as Record<string, string | null> | null;
       const res = f.errores.length
-        ? `<span class="text-red-700 font-medium">Error</span><br>${f.errores.map(esc).join('<br>')}`
+        ? `<span class="rounded-full bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800">Error</span><br>${f.errores.map(esc).join('<br>')}`
         : f.avisos.length
-          ? `<span class="text-amber-800 font-medium">Aviso</span><br>${f.avisos.map(esc).join('<br>')}`
-          : '<span class="text-emerald-800 font-medium">Lista</span>';
-      const celdas = !v ? cols.map(() => '<td class="px-3 py-2 text-neutral-400">—</td>') :
+          ? `<span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-medium text-amber-900">Aviso</span><br>${f.avisos.map(esc).join('<br>')}`
+          : '<span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-medium text-emerald-900">Lista</span>';
+      const celdas = !v ? cols.map(() => '<td class="px-4 py-3 text-neutral-400">—</td>') :
         (tipoActual === 'fichas'
           ? [v.nombre, v.contacto, nombreServicio(v.servicio), URGENCIAS[v.urgencia as Urgencia], ESTADOS[v.estado as Estado]]
           : [v.concepto, v.vence, v.cliente, v.estado === 'resuelto' ? 'Resuelto' : 'Abierto']
-        ).map((x) => `<td class="px-3 py-2">${esc(x)}</td>`);
-      return `<tr class="align-top"><td class="px-3 py-2 tabular-nums">${f.fila}</td><td class="px-3 py-2 min-w-48">${res}</td>${celdas.join('')}</tr>`;
+        ).map((x) => `<td class="px-4 py-3">${esc(x)}</td>`);
+      return `<tr class="align-top"><td class="px-4 py-3 tabular-nums">${f.fila}</td><td class="px-4 py-3 min-w-48">${res}</td>${celdas.join('')}</tr>`;
     }).join('');
     $('#recorte').textContent = l.filas.length > MOSTRAR ? `Se muestran las primeras ${MOSTRAR} de ${l.filas.length} filas.` : '';
 
