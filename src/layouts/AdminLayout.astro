@@ -1,0 +1,39 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+const usuario = Astro.locals.usuario;
+---
+
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* El panel es interno: fuera de buscadores. */}
+    <meta name="robots" content="noindex,nofollow" />
+    <title>{title} · Panel Tocagni</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-neutral-50 min-h-screen">
+    <header class="bg-primary text-white border-b border-accent/40">
+      <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
+        <a href="/admin" class="font-serif text-xl tracking-tight">Escribanía Tocagni</a>
+        {usuario && (
+          <span class="text-base text-white/70">{usuario.email} · {usuario.rol}</span>
+        )}
+      </div>
+    </header>
+    <main class="max-w-6xl mx-auto px-5 py-10">
+      <slot />
+    </main>
+  </body>
+</html>

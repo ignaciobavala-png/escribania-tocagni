@@ -469,6 +469,25 @@ Referencia: skill `ai-sdk-chatbot-grounded` en brain-data (adaptada de Groq a De
 - Rate limiting de Cloudflare sobre `/api/chat` (endpoint publico y pago).
 - Evaluar `session: false` para no provisionar el KV que el adapter crea solo.
 
+## Entorno interno (`/admin`)
+
+Rama `automatizacion`. Plan completo en `docs/plan-automatizacion.md`. El sitio
+publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
+`src/middleware.ts`.
+
+- **Datos**: D1 (binding `DB`), esquema en `migrations/`. Local:
+  `pnpm exec wrangler d1 migrations apply DB --local`.
+- **Login**: Cloudflare Access + tabla `usuarios` (rol `escribana`/`recepcion`).
+  El middleware valida el JWT (`src/lib/access.ts`) y falla cerrado si
+  `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` (vars de `wrangler.jsonc`) estan vacias.
+  En `astro dev` entra solo como `dev@local`.
+- **Mail**: binding `EMAIL` (Cloudflare Email Sending), siempre via
+  `src/lib/notificar.ts`. No hay API key.
+- **Auditoria**: `src/lib/auditoria.ts`, solo agregar.
+- **Pendiente antes de deployar**: crear la base remota (`wrangler d1 create`) y
+  poner su `database_id` real en `wrangler.jsonc` (hoy es un placeholder, solo
+  sirve en local); incorporar el dominio a Email Sending; crear la app en Access.
+
 ## Desarrollo
 
 ```bash

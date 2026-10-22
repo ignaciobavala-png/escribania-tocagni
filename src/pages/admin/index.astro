@@ -1,0 +1,63 @@
+---
+import { env } from 'cloudflare:workers';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+
+export const prerender = false;
+
+const hoy = new Date().toISOString().slice(0, 10);
+
+const [fichas, vencimientos] = await Promise.all([
+  env.DB.prepare(
+    `SELECT id, creada, nombre, servicio, urgencia, estado FROM fichas
+     WHERE estado != 'cerrada' ORDER BY creada DESC LIMIT 20`,
+  ).all<{ id: string; creada: string; nombre: string | null; servicio: string | null; urgencia: string; estado: string }>(),
+  env.DB.prepare(
+    `SELECT id, concepto, vence FROM vencimientos
+     WHERE estado = 'abierto' ORDER BY vence LIMIT 20`,
+  ).all<{ id: string; concepto: string; vence: string }>(),
+]);
+
+// Semáforo: vencido o a menos de una semana = rojo; hasta un mes = amarillo.
+const dias = (f: string) => Math.round((Date.parse(f) - Date.parse(hoy)) / 86_400_000);
+const color = (d: number) => (d < 7 ? 'bg-red-600' : d < 30 ? 'bg-amber-500' : 'bg-emerald-600');
+---
+
+<AdminLayout title="Resumen">
+  <h1 class="font-serif text-4xl text-primary tracking-tight">Resumen</h1>
+  <div class="w-16 h-px bg-accent mt-4 mb-10"></div>
+
+  <div class="grid gap-10 md:grid-cols-2">
+    <section>
+      <h2 class="text-base uppercase tracking-[0.3em] text-neutral-500 mb-4">Consultas abiertas</h2>
+      {fichas.results.length === 0 ? (
+        <p class="text-lg text-neutral-500">Todavía no hay consultas.</p>
+      ) : (
+        <ul class="divide-y divide-neutral-200 border-y border-neutral-200">
+          {fichas.results.map((f) => (
+            <li class="py-3 flex justify-between gap-4 text-lg">
+              <span>{f.nombre ?? 'Sin nombre'}</span>
+              <span class="text-neutral-500">{f.estado.replace(/_/g, ' ')}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <section>
+      <h2 class="text-base uppercase tracking-[0.3em] text-neutral-500 mb-4">Vencimientos</h2>
+      {vencimientos.results.length === 0 ? (
+        <p class="text-lg text-neutral-500">No hay vencimientos cargados.</p>
+      ) : (
+        <ul class="divide-y divide-neutral-200 border-y border-neutral-200">
+          {vencimientos.results.map((v) => (
+            <li class="py-3 flex items-center gap-3 text-lg">
+              <span class={`w-3 h-3 rounded-full ${color(dias(v.vence))}`} aria-hidden="true"></span>
+              <span class="flex-1">{v.concepto}</span>
+              <span class="text-neutral-500">{v.vence}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  </div>
+</AdminLayout>
