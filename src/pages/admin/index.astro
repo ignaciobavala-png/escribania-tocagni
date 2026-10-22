@@ -13,7 +13,7 @@ interface FilaVenc { id: string; concepto: string; vence: string; ficha_id: stri
 interface FilaTurno { id: string; inicio: string; motivo: string | null; nombre: string | null }
 interface FilaActividad { cuando: string; actor: string; accion: string; entidad: string | null; ref: string | null; detalle: string | null }
 
-const [fichas, vencimientos, turnos, actividad] = await Promise.all([
+const [fichas, vencimientos, turnos, actividad, autom] = await Promise.all([
   env.DB.prepare(
     `SELECT id, creada, nombre, servicio, urgencia, estado, resumen, origen FROM fichas
      WHERE estado != 'cerrada'
@@ -32,16 +32,35 @@ const [fichas, vencimientos, turnos, actividad] = await Promise.all([
     `SELECT cuando, actor, accion, entidad, ref, detalle FROM auditoria
      WHERE accion != 'acceso_denegado' ORDER BY id DESC LIMIT 8`,
   ).all<FilaActividad>(),
+  env.DB.prepare(
+    `SELECT (SELECT count(*) FROM fichas WHERE origen = 'chat') AS chat,
+            (SELECT count(*) FROM auditoria WHERE accion = 'aviso_enviado') AS avisos`,
+  ).first<{ chat: number; avisos: number }>(),
 ]);
 
 const nuevas = fichas.results.filter((f) => f.estado === 'nueva').length;
 const enCurso = fichas.results.filter((f) => f.estado === 'en_curso').length;
+const chatNuevas = fichas.results.filter((f) => f.estado === 'nueva' && f.origen === 'chat').length;
 const urgentes = vencimientos.results.filter((v) => semaforo(v.vence).nivel === 'rojo').length;
 
 // Saludo y fecha en hora de Buenos Aires (el Worker corre en UTC).
-const horaAR = Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()));
+const TZ = 'America/Argentina/Buenos_Aires';
+const horaAR = Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date()));
 const saludo = horaAR < 6 ? 'Buenas noches' : horaAR < 13 ? 'Buenos días' : horaAR < 20 ? 'Buenas tardes' : 'Buenas noches';
-const fechaLarga = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+const fechaLarga = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ }).format(new Date());
+
+// Resumen del día: reglas sobre los datos de arriba (no llama a ningún modelo).
+const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+const partes: string[] = [];
+if (nuevas > 0) partes.push(`${plural(nuevas, 'consulta nueva', 'consultas nuevas')}${chatNuevas > 0 ? ` (${chatNuevas} por el chat del sitio)` : ''}`);
+if (urgentes > 0) partes.push(plural(urgentes, 'vencimiento urgente', 'vencimientos urgentes'));
+if (turnos.results.length > 0) partes.push(plural(turnos.results.length, 'turno hoy', 'turnos hoy'));
+const resumenDia = partes.length === 0
+  ? 'Todo al día. Cuando llegue una consulta por el chat, la ficha se crea sola y te avisamos por mail.'
+  : `Hoy tenés ${partes.join(', ').replace(/, ([^,]*)$/, ' y $1')}.`;
+const prioridad =
+  fichas.results.find((f) => f.urgencia === 'alta' && f.estado === 'nueva') ?? fichas.results.find((f) => f.estado === 'nueva') ?? null;
+const venceYa = vencimientos.results.find((v) => semaforo(v.vence).nivel === 'rojo') ?? null;
 
 const quien = (actor: string) => (actor.includes('@') ? actor.split('@')[0] : actor);
 function describir(a: FilaActividad): { texto: string; tono: 'normal' | 'alerta' } {
@@ -66,78 +85,103 @@ function describir(a: FilaActividad): { texto: string; tono: 'normal' | 'alerta'
   }
 }
 
-const tarjeta = 'bg-white rounded-2xl border border-neutral-200 shadow-sm';
+// Lo que trabaja solo: cada ítem es una feature del panel, dicha en una línea.
+const automatizaciones = [
+  { activa: true, titulo: 'Chat del sitio → ficha', detalle: `${plural(autom?.chat ?? 0, 'consulta ingresada', 'consultas ingresadas')} sin tipear nada` },
+  { activa: true, titulo: 'Aviso por mail al estudio', detalle: `${plural(autom?.avisos ?? 0, 'aviso enviado', 'avisos enviados')} apenas llega una consulta` },
+  { activa: true, titulo: 'Dictado por voz', detalle: 'Hablás y la consulta queda transcripta' },
+  { activa: true, titulo: 'Excel de ida y vuelta', detalle: 'Importás tu planilla y exportás cuando quieras' },
+  { activa: false, titulo: 'Resumen diario por mail', detalle: 'Lo del día en tu mail, cada mañana' },
+];
+
+const vidrio = 'glass rounded-3xl';
 const filtros: { valor: 'todas' | Estado; texto: string }[] = [
   { valor: 'todas', texto: 'Todas' },
   { valor: 'nueva', texto: 'Nuevas' },
   { valor: 'en_curso', texto: 'En curso' },
   { valor: 'esperando_documentacion', texto: 'Esperando documentación' },
 ];
+const stats = [
+  { n: nuevas, t: nuevas === 1 ? 'Consulta nueva' : 'Consultas nuevas', alerta: false, icono: '<path d="M4 6h16M4 12h16M4 18h10"/>' },
+  { n: enCurso, t: 'En curso', alerta: false, icono: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
+  { n: urgentes, t: urgentes === 1 ? 'Vencimiento urgente' : 'Vencimientos urgentes', alerta: urgentes > 0, icono: '<path d="M12 3 2.5 20h19z"/><path d="M12 10v4M12 17.5v.01"/>' },
+  { n: turnos.results.length, t: turnos.results.length === 1 ? 'Turno hoy' : 'Turnos hoy', alerta: false, icono: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>' },
+];
 ---
 
 <AdminLayout title="Inicio">
-  <header class="mb-8">
-    <p class="text-base text-neutral-600 first-letter:uppercase">{fechaLarga}</p>
-    <h1 class="text-3xl md:text-4xl font-semibold text-primary tracking-tight mt-1">{saludo}</h1>
-  </header>
+  {/* Fondo: degradado cálido con dos halos desenfocados. Solo en esta pantalla. */}
+  <div slot="fondo" class="fondo" aria-hidden="true">
+    <span class="halo halo-a"></span>
+    <span class="halo halo-b"></span>
+  </div>
 
-  {/* Acciones principales: lo que más se hace, a un toque. */}
-  <section aria-label="Acciones" class="grid gap-3 sm:grid-cols-3 mb-8">
-    <a href="/admin/nueva" class="group flex items-center gap-4 rounded-2xl bg-primary text-white p-5 shadow-sm transition hover:bg-primary-light hover:-translate-y-0.5">
-      <span class="grid place-items-center w-12 h-12 rounded-xl bg-white/12 shrink-0">
-        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
-      </span>
-      <span>
-        <span class="block text-lg font-semibold">Dictar una consulta</span>
-        <span class="block text-sm text-white/70">Hablás y queda la ficha</span>
-      </span>
-    </a>
-    <a href="/admin/nueva" class={`${tarjeta} flex items-center gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-md`}>
-      <span class="grid place-items-center w-12 h-12 rounded-xl bg-accent/15 text-accent-dark shrink-0">
-        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-      </span>
-      <span>
-        <span class="block text-lg font-semibold text-primary">Nueva consulta</span>
-        <span class="block text-sm text-neutral-600">Cargarla a mano</span>
-      </span>
-    </a>
-    <a href="/admin/excel" class={`${tarjeta} flex items-center gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-md`}>
-      <span class="grid place-items-center w-12 h-12 rounded-xl bg-primary/8 text-primary shrink-0">
-        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg>
-      </span>
-      <span>
-        <span class="block text-lg font-semibold text-primary">Importar Excel</span>
-        <span class="block text-sm text-neutral-600">Traé tu planilla actual</span>
-      </span>
-    </a>
+  {/* Asistente: el resumen del día y la acción principal. */}
+  <section aria-labelledby="h-hola" class={`${vidrio} hero rise p-6 md:p-9 mb-6`} style="--d:0ms">
+    <div class="grid gap-7 md:grid-cols-[1fr_auto] md:items-center">
+      <div>
+        <p class="inline-flex items-center gap-2 rounded-full bg-primary/8 px-3 py-1 text-sm font-medium text-primary">
+          <span class="pulso" aria-hidden="true"></span>
+          Asistente del estudio
+          <span class="text-neutral-500 font-normal">· <span class="first-letter:uppercase">{fechaLarga}</span></span>
+        </p>
+        <h1 id="h-hola" class="mt-4 text-4xl md:text-5xl font-semibold tracking-tight text-primary">{saludo}</h1>
+        <p class="mt-3 text-lg md:text-xl text-neutral-700 max-w-2xl">{resumenDia}</p>
+
+        {(prioridad || venceYa) && (
+          <div class="mt-5 flex flex-wrap gap-2.5">
+            {prioridad && (
+              <a href={`/admin/fichas/${prioridad.id}`} class="chip">
+                <span class="text-accent-dark" aria-hidden="true">✦</span>
+                Empezá por <strong class="font-semibold">{prioridad.nombre ?? 'la consulta nueva'}</strong>
+                {prioridad.urgencia === 'alta' && <span class="text-red-700">· urgente</span>}
+              </a>
+            )}
+            {venceYa && (
+              <a href={venceYa.ficha_id ? `/admin/fichas/${venceYa.ficha_id}` : '#'} class="chip">
+                <span class="w-2 h-2 rounded-full bg-red-600" aria-hidden="true"></span>
+                {venceYa.concepto} · <span class="text-red-700 font-medium">{semaforo(venceYa.vence).texto}</span>
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+
+      <a href="/admin/nueva" class="mic group" aria-label="Dictar una consulta">
+        <span class="mic-anillo" aria-hidden="true"></span>
+        <span class="mic-boton">
+          <svg class="w-9 h-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        </span>
+        <span class="mt-3 block text-base font-semibold text-primary">Dictar consulta</span>
+        <span class="block text-sm text-neutral-600">Hablás y queda la ficha</span>
+      </a>
+    </div>
   </section>
 
   {/* Números del día. */}
-  <section aria-label="Resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-    {[
-      { n: nuevas, t: nuevas === 1 ? 'Consulta nueva' : 'Consultas nuevas', alerta: false },
-      { n: enCurso, t: 'En curso', alerta: false },
-      { n: urgentes, t: urgentes === 1 ? 'Vencimiento urgente' : 'Vencimientos urgentes', alerta: urgentes > 0 },
-      { n: turnos.results.length, t: turnos.results.length === 1 ? 'Turno hoy' : 'Turnos hoy', alerta: false },
-    ].map((s) => (
-      <div class={`${tarjeta} p-5`}>
-        <p class={`text-4xl font-semibold tabular-nums ${s.alerta ? 'text-red-700' : 'text-primary'}`}>{s.n}</p>
-        <p class="mt-1 text-base text-neutral-600">{s.t}</p>
+  <section aria-label="Resumen" class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+    {stats.map((s, i) => (
+      <div class={`${vidrio} rise p-5`} style={`--d:${80 + i * 60}ms`}>
+        <span class={`grid place-items-center w-10 h-10 rounded-2xl ${s.alerta ? 'bg-red-600/10 text-red-700' : 'bg-primary/8 text-primary'}`}>
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={s.icono} />
+        </span>
+        <p class={`mt-3 text-4xl font-semibold tabular-nums ${s.alerta ? 'text-red-700' : 'text-primary'}`} data-count={s.n}>{s.n}</p>
+        <p class="mt-0.5 text-base text-neutral-600">{s.t}</p>
       </div>
     ))}
   </section>
 
-  <div class="grid gap-6 lg:grid-cols-5">
+  <div class="grid gap-5 lg:grid-cols-5">
     {/* Consultas abiertas, con búsqueda y filtro por estado (sin recargar). */}
-    <section aria-labelledby="h-consultas" class={`${tarjeta} lg:col-span-3 p-5 md:p-6`}>
+    <section aria-labelledby="h-consultas" class={`${vidrio} rise lg:col-span-3 p-5 md:p-7`} style="--d:320ms">
       <h2 id="h-consultas" class="text-xl font-semibold text-primary">Consultas abiertas</h2>
       {fichas.results.length === 0 ? (
-        <div class="mt-4 rounded-xl bg-neutral-50 border border-dashed border-neutral-300 p-6 text-center">
+        <div class="mt-4 rounded-2xl bg-white/50 border border-dashed border-neutral-300 p-6 text-center">
           <p class="text-lg font-medium text-primary">Todavía no hay consultas</p>
           <p class="mt-1 text-base text-neutral-600 max-w-md mx-auto">
             Acá van a aparecer las que lleguen por el chat del sitio (cada una te avisa por mail) y las que cargues vos.
           </p>
-          <a href="/admin/nueva" class="mt-4 inline-block rounded-xl bg-primary text-white px-5 py-3 text-base font-medium">Cargar la primera</a>
+          <a href="/admin/nueva" class="mt-4 inline-block rounded-2xl bg-primary text-white px-5 py-3 text-base font-medium">Cargar la primera</a>
         </div>
       ) : (
         <>
@@ -146,20 +190,20 @@ const filtros: { valor: 'todas' | Estado; texto: string }[] = [
             type="search"
             placeholder="Buscar por nombre o detalle"
             aria-label="Buscar consultas"
-            class="mt-4 w-full rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-base"
+            class="mt-4 w-full rounded-2xl border border-white/70 bg-white/60 px-4 py-3 text-base outline-none focus:ring-2 focus:ring-accent/50"
           />
           <div id="filtros" class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado">
             {filtros.map((f, i) => (
               <button type="button" data-filtro={f.valor} aria-pressed={i === 0 ? 'true' : 'false'}
-                class="rounded-full border border-neutral-300 px-4 py-1.5 text-base text-neutral-700 aria-pressed:bg-primary aria-pressed:border-primary aria-pressed:text-white transition-colors">
+                class="rounded-full border border-neutral-300/70 bg-white/40 px-4 py-1.5 text-base text-neutral-700 aria-pressed:bg-primary aria-pressed:border-primary aria-pressed:text-white transition-colors">
                 {f.texto}
               </button>
             ))}
           </div>
-          <ul id="lista" class="mt-3 divide-y divide-neutral-200">
+          <ul id="lista" class="mt-3 divide-y divide-neutral-200/70">
             {fichas.results.map((f) => (
               <li data-estado={f.estado} data-texto={`${f.nombre ?? ''} ${f.resumen ?? ''}`.toLowerCase()}>
-                <a href={`/admin/fichas/${f.id}`} class="block -mx-3 px-3 py-3.5 rounded-xl min-h-14 transition-colors hover:bg-neutral-50">
+                <a href={`/admin/fichas/${f.id}`} class="block -mx-3 px-3 py-3.5 rounded-2xl min-h-14 transition-colors hover:bg-white/60">
                   <span class="flex items-baseline justify-between gap-3 text-lg">
                     <span class="font-medium text-neutral-900">
                       {f.urgencia === 'alta' && <span class="text-red-700" title="Urgente">● </span>}{f.nombre ?? 'Sin nombre'}
@@ -169,7 +213,7 @@ const filtros: { valor: 'todas' | Estado; texto: string }[] = [
                   {f.resumen && <span class="block text-base text-neutral-600 line-clamp-1">{f.resumen}</span>}
                   <span class="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
                     <span class={`rounded-full px-2.5 py-0.5 ${claseEstado[f.estado]}`}>{ESTADOS[f.estado]}</span>
-                    {f.origen === 'chat' && <span class="rounded-full px-2.5 py-0.5 bg-neutral-100 text-neutral-600">Desde el chat</span>}
+                    {f.origen === 'chat' && <span class="rounded-full px-2.5 py-0.5 bg-accent/15 text-accent-dark">✦ Desde el chat</span>}
                     {nombreServicio(f.servicio) && <span class="text-neutral-600">{nombreServicio(f.servicio)}</span>}
                   </span>
                 </a>
@@ -181,8 +225,26 @@ const filtros: { valor: 'todas' | Estado; texto: string }[] = [
       )}
     </section>
 
-    <div class="lg:col-span-2 space-y-6">
-      <section aria-labelledby="h-turnos" class={`${tarjeta} p-5 md:p-6`}>
+    <div class="lg:col-span-2 space-y-5">
+      {/* Qué hace el sistema solo: vuelve visibles las automatizaciones. */}
+      <section aria-labelledby="h-auto" class={`${vidrio} rise p-5 md:p-7`} style="--d:380ms">
+        <h2 id="h-auto" class="text-xl font-semibold text-primary">Trabaja por vos</h2>
+        <ul class="mt-3 space-y-3.5">
+          {automatizaciones.map((a) => (
+            <li class="flex items-start gap-3">
+              <span class={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${a.activa ? 'bg-emerald-600' : 'bg-neutral-300'}`} aria-hidden="true"></span>
+              <span class={a.activa ? '' : 'opacity-70'}>
+                <span class="block text-base font-medium text-neutral-900">
+                  {a.titulo}{!a.activa && <span class="ml-2 rounded-full bg-neutral-200/80 px-2 py-0.5 text-xs font-medium text-neutral-600 align-middle">Pronto</span>}
+                </span>
+                <span class="block text-sm text-neutral-600">{a.detalle}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="h-turnos" class={`${vidrio} rise p-5 md:p-7`} style="--d:440ms">
         <h2 id="h-turnos" class="text-xl font-semibold text-primary">Turnos de hoy</h2>
         {turnos.results.length === 0 ? (
           <p class="mt-3 text-base text-neutral-600">Sin turnos para hoy.</p>
@@ -198,12 +260,12 @@ const filtros: { valor: 'todas' | Estado; texto: string }[] = [
         )}
       </section>
 
-      <section aria-labelledby="h-venc" class={`${tarjeta} p-5 md:p-6`}>
+      <section aria-labelledby="h-venc" class={`${vidrio} rise p-5 md:p-7`} style="--d:500ms">
         <h2 id="h-venc" class="text-xl font-semibold text-primary">Vencimientos</h2>
         {vencimientos.results.length === 0 ? (
           <p class="mt-3 text-base text-neutral-600">Nada vence en los próximos 30 días. Los plazos que cargues en una consulta aparecen acá con semáforo.</p>
         ) : (
-          <ul class="mt-2 divide-y divide-neutral-200">
+          <ul class="mt-2 divide-y divide-neutral-200/70">
             {vencimientos.results.map((v) => {
               const s = semaforo(v.vence);
               return (
@@ -223,7 +285,7 @@ const filtros: { valor: 'todas' | Estado; texto: string }[] = [
         )}
       </section>
 
-      <section aria-labelledby="h-act" class={`${tarjeta} p-5 md:p-6`}>
+      <section aria-labelledby="h-act" class={`${vidrio} rise p-5 md:p-7`} style="--d:560ms">
         <h2 id="h-act" class="text-xl font-semibold text-primary">Actividad reciente</h2>
         {actividad.results.length === 0 ? (
           <p class="mt-3 text-base text-neutral-600">Todo lo que pase en el panel y en el chat queda registrado acá.</p>
@@ -247,8 +309,158 @@ const filtros: { valor: 'todas' | Estado; texto: string }[] = [
     </div>
   </div>
 
+  <style>
+    /* Fondo fijo detrás de todo: degradado cálido + dos halos que flotan despacio. */
+    .fondo {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+      background: linear-gradient(160deg, #f6f2ea 0%, #ece7dd 55%, #e4e8ee 100%);
+    }
+    .halo {
+      position: absolute;
+      border-radius: 9999px;
+      filter: blur(90px);
+      opacity: 0.55;
+    }
+    .halo-a {
+      width: 38rem; height: 38rem; top: -12rem; right: -8rem;
+      background: #c7a76a;
+      animation: flotar 22s ease-in-out infinite alternate;
+    }
+    .halo-b {
+      width: 34rem; height: 34rem; bottom: -14rem; left: 12rem;
+      background: #264468;
+      opacity: 0.32;
+      animation: flotar 28s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes flotar {
+      to { transform: translate(-3rem, 2.5rem) scale(1.08); }
+    }
+
+    /* Vidrio: blanco translúcido, desenfoque del fondo y un borde de luz arriba. */
+    .glass {
+      background: rgb(255 255 255 / 0.55);
+      -webkit-backdrop-filter: blur(22px) saturate(1.4);
+      backdrop-filter: blur(22px) saturate(1.4);
+      border: 1px solid rgb(255 255 255 / 0.7);
+      box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.8) inset,
+        0 10px 30px -12px rgb(26 41 64 / 0.18);
+    }
+
+    /* Entrada escalonada de las tarjetas. */
+    .rise {
+      animation: subir 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      animation-delay: var(--d, 0ms);
+    }
+    @keyframes subir {
+      from { opacity: 0; transform: translateY(14px); }
+    }
+
+    /* Tarjeta del asistente: un borde de luz bronce que recorre el contorno. */
+    .hero { position: relative; }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1.5px;
+      background: linear-gradient(120deg, transparent 30%, #c7a76a 50%, transparent 70%) 0 0 / 250% 100%;
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      animation: brillo 7s linear infinite;
+    }
+    @keyframes brillo {
+      from { background-position: 150% 0; }
+      to { background-position: -100% 0; }
+    }
+
+    /* Punto "en vivo" del asistente. */
+    .pulso {
+      position: relative;
+      width: 0.5rem; height: 0.5rem;
+      border-radius: 9999px;
+      background: #1e6b4f;
+    }
+    .pulso::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: inherit;
+      animation: onda 2.4s ease-out infinite;
+    }
+    @keyframes onda {
+      to { transform: scale(3.2); opacity: 0; }
+    }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      border-radius: 9999px;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      color: #3d3830;
+      background: rgb(255 255 255 / 0.7);
+      border: 1px solid rgb(255 255 255 / 0.9);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .chip:hover { transform: translateY(-1px); box-shadow: 0 6px 16px -8px rgb(26 41 64 / 0.35); }
+
+    /* Botón del micrófono: la acción estrella, con un anillo que respira. */
+    .mic { position: relative; display: grid; justify-items: center; text-align: center; }
+    .mic-boton {
+      position: relative; z-index: 1;
+      display: grid; place-items: center;
+      width: 5.5rem; height: 5.5rem;
+      border-radius: 9999px;
+      color: #fff;
+      background: linear-gradient(145deg, #264468, #1a2940);
+      box-shadow: 0 14px 30px -10px rgb(26 41 64 / 0.7), 0 1px 0 rgb(255 255 255 / 0.25) inset;
+      transition: transform 0.25s;
+    }
+    .mic:hover .mic-boton { transform: scale(1.06); }
+    .mic-anillo {
+      position: absolute; top: 0; width: 5.5rem; height: 5.5rem;
+      border-radius: 9999px;
+      border: 2px solid #b8944c;
+      animation: respirar 2.8s ease-out infinite;
+    }
+    @keyframes respirar {
+      from { transform: scale(1); opacity: 0.7; }
+      to { transform: scale(1.7); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .halo, .rise, .hero::before, .pulso::after, .mic-anillo { animation: none; }
+    }
+    /* Sin soporte de desenfoque, el vidrio pasa a ser casi opaco para no perder lectura. */
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .glass { background: rgb(255 255 255 / 0.92); }
+    }
+  </style>
+
   <script is:inline>
     (() => {
+      // Conteo de los números al entrar (sin esto el valor final ya está en el HTML).
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        for (const el of document.querySelectorAll('[data-count]')) {
+          const fin = Number(el.dataset.count);
+          if (!fin) continue;
+          const t0 = performance.now();
+          const paso = (t) => {
+            const p = Math.min(1, (t - t0) / 900);
+            el.textContent = String(Math.round(fin * (1 - Math.pow(1 - p, 3))));
+            if (p < 1) requestAnimationFrame(paso);
+          };
+          el.textContent = '0';
+          requestAnimationFrame(paso);
+        }
+      }
+
       const lista = document.getElementById('lista');
       if (!lista) return;
       const buscar = document.getElementById('buscar');

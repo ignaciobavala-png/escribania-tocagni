@@ -48,6 +48,8 @@ const activa = (href: string) => (href === '/admin' ? ruta === href || ruta.star
     />
   </head>
   <body class="bg-neutral-100 min-h-screen lg:pl-64 pb-24 lg:pb-0">
+    {/* Fondo opcional (lo usa solo el Inicio): queda detrás de todo. */}
+    <slot name="fondo" />
     {/* Escritorio: menú lateral fijo. */}
     <aside class="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-primary text-white">
       <a href="/admin" class="px-6 pt-7 pb-8 block">
