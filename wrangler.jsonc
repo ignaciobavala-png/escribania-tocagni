@@ -33,8 +33,8 @@
   // dos valores (panel Zero Trust > Access > Applications). Vacíos = /admin
   // cerrado en producción.
   "vars": {
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": ""
+    "ACCESS_TEAM_DOMAIN": "ethoslogliberty.cloudflareaccess.com",
+    "ACCESS_AUD": "1f7f367023d8ce72f3a7dcc6488e701cef789bd4bb625a214d07c4c43eea903f"
   },
   "observability": {
     "enabled": true
