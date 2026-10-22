@@ -78,6 +78,12 @@ function describir(a: FilaActividad): { texto: string; tono: 'normal' | 'alerta'
       return { texto: `Vencimiento agregado por ${quien(a.actor)}`, tono: 'normal' };
     case 'importacion':
       return { texto: `Planilla importada${det.importadas != null ? ` · ${det.importadas} filas` : ''}`, tono: 'normal' };
+    case 'documento_subido':
+      return { texto: `Documento subido por ${quien(a.actor)}`, tono: 'normal' };
+    case 'documento_visto':
+      return { texto: `Documento consultado por ${quien(a.actor)}`, tono: 'normal' };
+    case 'documento_movido':
+      return { texto: `Documento reubicado por ${quien(a.actor)}`, tono: 'normal' };
     case 'turno_creado':
       return { texto: `Turno agendado por ${quien(a.actor)}`, tono: 'normal' };
     case 'exportacion':
