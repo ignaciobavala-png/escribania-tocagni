@@ -1,0 +1,41 @@
+---
+// Botones para contactar a quien consultó, a partir del campo libre "Teléfono o mail".
+// WhatsApp es el canal principal del estudio; "Llamar" solo se ofrece en teléfonos
+// (en una computadora `tel:` abre el gestor de enlaces del sistema y no hace nada útil).
+import { enlaceWhatsapp, leerContacto } from '../lib/contacto';
+
+interface Props {
+  contacto: string | null;
+  nombre: string | null;
+}
+const { contacto, nombre } = Astro.props;
+const c = leerContacto(contacto);
+const hayAlgo = c.whatsapp || c.email || c.tel;
+const base = 'inline-flex min-h-12 items-center justify-center gap-2.5 rounded-2xl px-5 py-3 text-base font-medium transition-colors';
+---
+
+{hayAlgo && (
+  <div class="flex flex-wrap items-center gap-3">
+    {c.whatsapp && (
+      <a href={enlaceWhatsapp(c.whatsapp, nombre)} target="_blank" rel="noopener" class={`${base} bg-whatsapp text-white hover:bg-whatsapp-dark`}>
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.7-5.2A8.5 8.5 0 1 1 21 11.5z"/></svg>
+        Escribir por WhatsApp
+      </a>
+    )}
+    {c.email && (
+      <a href={`mailto:${c.email}`} class={`${base} border border-primary/30 bg-white/70 text-primary hover:bg-white`}>
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        Escribir mail
+      </a>
+    )}
+    {c.tel && (
+      <a href={`tel:${c.tel}`} class={`${base} hidden border border-primary/30 bg-white/70 text-primary hover:bg-white [@media(hover:none)]:inline-flex`}>
+        Llamar
+      </a>
+    )}
+    <span class="text-base text-neutral-600">{contacto}</span>
+    {!c.whatsapp && c.tel && !c.email && (
+      <span class="w-full text-sm text-neutral-500">No pude armar el WhatsApp: falta el código de área o no es un celular.</span>
+    )}
+  </div>
+)}

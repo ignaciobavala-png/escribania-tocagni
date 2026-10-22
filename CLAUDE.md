@@ -526,6 +526,12 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
   nunca se guarda sola: la persona confirma. El prompt aclara que pedir un
   "certificado" dentro de una compraventa no es el servicio 01 (el modelo lo
   confundia). Estilo compartido del panel en `src/styles/panel.css`.
+- **Contactar a quien consulta**: el campo "Telefono o mail" es texto libre;
+  `src/lib/contacto.ts` lo interpreta y `BotonesContacto.astro` arma WhatsApp
+  (`wa.me/549...` con el 0 y el 15 sacados, igual que pide el sitio publico),
+  mail y "Llamar" (este ultimo solo en telefonos: `tel:` en escritorio dispara
+  `xdg-open` y no hace nada). Si el numero no es un celular reconocible (p. ej.
+  fijo sin codigo de area) no se inventa un WhatsApp: se avisa.
 - **Local**: el binding `EMAIL` se simula (no sale ningun mail; el contenido se
   guarda en `.wrangler/tmp/email`). `AI` siempre pega a Cloudflare (cobra poco).
   Typecheck: `pnpm --package=typescript@5 dlx tsc --noEmit` (el build de Astro

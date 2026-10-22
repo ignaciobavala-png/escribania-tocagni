@@ -2,6 +2,7 @@
 import { env } from 'cloudflare:workers';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import AnilloProgreso from '../../../components/AnilloProgreso.astro';
+import BotonesContacto from '../../../components/BotonesContacto.astro';
 import { ESTADOS, claseEstado, nombreServicio, type Estado } from '../../../lib/fichas';
 import { haceCuanto } from '../../../lib/fechas';
 import { ACCEPT, VISIBLES, tamano } from '../../../lib/documentos';
@@ -10,9 +11,9 @@ import { CATEGORIAS, categoriaPorClave, progreso } from '../../../data/expedient
 export const prerender = false;
 
 const { id } = Astro.params;
-const ficha = await env.DB.prepare('SELECT id, nombre, servicio, estado, urgencia FROM fichas WHERE id = ?')
+const ficha = await env.DB.prepare('SELECT id, nombre, contacto, servicio, estado, urgencia FROM fichas WHERE id = ?')
   .bind(id)
-  .first<{ id: string; nombre: string | null; servicio: string | null; estado: Estado; urgencia: string }>();
+  .first<{ id: string; nombre: string | null; contacto: string | null; servicio: string | null; estado: Estado; urgencia: string }>();
 if (!ficha) return new Response('No existe el expediente', { status: 404 });
 
 interface FilaDoc { id: string; tipo: string; nombre: string; bytes: number | null; subido: string; categoria: string }
@@ -54,6 +55,8 @@ const boton = 'inline-flex items-center rounded-full border border-neutral-300 p
         </p>
       </div>
     </div>
+
+    <div class="mt-5"><BotonesContacto contacto={ficha.contacto} nombre={ficha.nombre} /></div>
 
     <div class="mt-5 rounded-2xl bg-primary/5 border border-primary/10 px-4 py-3.5 text-lg text-neutral-800">
       <span class="mr-1.5 text-accent-dark" aria-hidden="true">✦</span>
