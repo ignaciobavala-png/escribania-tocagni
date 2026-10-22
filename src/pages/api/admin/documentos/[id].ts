@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { auditar } from '../../../../lib/auditoria';
 import { VISIBLES } from '../../../../lib/documentos';
+import { esCategoria } from '../../../../data/expediente';
 
 export const prerender = false;
 
@@ -32,4 +33,19 @@ export const GET: APIRoute = async ({ params, url, locals }) => {
       'Cache-Control': 'private, no-store',
     },
   });
+};
+
+// Mover un archivo de carpeta (cambiar su categoría). El archivo no se toca.
+export const PATCH: APIRoute = async ({ params, request, locals }) => {
+  const usuario = locals.usuario;
+  if (!usuario) return new Response('No autorizado', { status: 401 });
+
+  const { categoria } = (await request.json().catch(() => ({}))) as { categoria?: unknown };
+  if (!esCategoria(categoria)) return Response.json({ error: 'Categoría inválida.' }, { status: 400 });
+
+  const doc = await env.DB.prepare('SELECT ficha_id FROM documentos WHERE id = ?').bind(params.id).first<{ ficha_id: string }>();
+  if (!doc) return Response.json({ error: 'No existe el documento.' }, { status: 404 });
+  await env.DB.prepare('UPDATE documentos SET categoria = ? WHERE id = ?').bind(categoria, params.id).run();
+  await auditar(env.DB, usuario.email, 'documento_movido', { entidad: 'ficha', ref: doc.ficha_id, detalle: { documento: params.id, categoria } });
+  return Response.json({ ok: true });
 };

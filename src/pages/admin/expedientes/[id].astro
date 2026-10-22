@@ -1,0 +1,283 @@
+---
+import { env } from 'cloudflare:workers';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AnilloProgreso from '../../../components/AnilloProgreso.astro';
+import { ESTADOS, claseEstado, nombreServicio, type Estado } from '../../../lib/fichas';
+import { haceCuanto } from '../../../lib/fechas';
+import { ACCEPT, VISIBLES, tamano } from '../../../lib/documentos';
+import { CATEGORIAS, categoriaPorClave, progreso } from '../../../data/expediente';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const ficha = await env.DB.prepare('SELECT id, nombre, servicio, estado, urgencia FROM fichas WHERE id = ?')
+  .bind(id)
+  .first<{ id: string; nombre: string | null; servicio: string | null; estado: Estado; urgencia: string }>();
+if (!ficha) return new Response('No existe el expediente', { status: 404 });
+
+interface FilaDoc { id: string; tipo: string; nombre: string; bytes: number | null; subido: string; categoria: string }
+const docs = await env.DB.prepare(
+  `SELECT id, tipo, nombre, bytes, subido, coalesce(categoria, 'otros') AS categoria FROM documentos WHERE ficha_id = ? ORDER BY subido DESC`,
+).bind(id).all<FilaDoc>();
+
+const porCategoria = new Map<string, FilaDoc[]>();
+for (const d of docs.results) porCategoria.set(d.categoria, [...(porCategoria.get(d.categoria) ?? []), d]);
+
+const p = progreso(ficha.servicio, new Set(porCategoria.keys()));
+const requeridas = new Set(p.requeridos.map((c) => c.clave));
+// Carpetas visibles: las sugeridas (con o sin archivos) y las demás solo si tienen algo.
+const visibles = [
+  ...p.requeridos,
+  ...CATEGORIAS.filter((c) => !requeridas.has(c.clave) && porCategoria.has(c.clave)),
+];
+const ocultas = CATEGORIAS.filter((c) => !visibles.some((v) => v.clave === c.clave));
+
+const lista = (items: string[]) => items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
+const ext = (n: string) => (n.split('.').pop() ?? '').toUpperCase().slice(0, 4);
+const tarjeta = 'bg-white rounded-3xl border border-neutral-200 shadow-sm';
+const boton = 'inline-flex items-center rounded-full border border-neutral-300 px-3.5 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors';
+---
+
+<AdminLayout title={`Expediente · ${ficha.nombre ?? 'Sin nombre'}`}>
+  <a href="/admin/expedientes" class="text-base text-neutral-600 underline">← Expedientes</a>
+
+  {/* Cabecera: quién es, cómo viene y qué dice el asistente. */}
+  <section class={`${tarjeta} mt-4 p-5 md:p-7`} aria-labelledby="h-exp">
+    <div class="flex flex-wrap items-center gap-5">
+      <AnilloProgreso avance={p.avance} texto={p.avance === null ? '—' : `${p.completos.length}/${p.requeridos.length}`} tam={88} />
+      <div class="min-w-0 flex-1">
+        <h1 id="h-exp" class="text-3xl md:text-4xl font-semibold tracking-tight text-primary">{ficha.nombre ?? 'Sin nombre'}</h1>
+        <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-lg text-neutral-600">
+          {nombreServicio(ficha.servicio) ?? 'Tipo de trámite sin definir'}
+          <span class={`rounded-full px-2.5 py-0.5 text-sm ${claseEstado[ficha.estado]}`}>{ESTADOS[ficha.estado]}</span>
+          <a href={`/admin/fichas/${ficha.id}`} class="text-base text-primary underline">Ver consulta</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-5 rounded-2xl bg-primary/5 border border-primary/10 px-4 py-3.5 text-lg text-neutral-800">
+      <span class="mr-1.5 text-accent-dark" aria-hidden="true">✦</span>
+      {p.avance === null ? (
+        <>Elegí el <a href={`/admin/fichas/${ficha.id}`} class="underline text-primary">tipo de trámite</a> y te digo qué documentación suele hacer falta. Mientras tanto, podés subir archivos y los ordeno.</>
+      ) : p.faltan.length === 0 ? (
+        <>Está toda la documentación sugerida. Si ya podés avanzar, cambiá el estado de la consulta.</>
+      ) : (
+        <>Falta {lista(p.faltan.map((c) => c.titulo.toLowerCase()))}. Arrastrá los archivos acá abajo y los clasifico por vos.</>
+      )}
+    </div>
+    {p.avance !== null && (
+      <p class="mt-2 text-sm text-neutral-500">Lista sugerida de arranque: la escribana la tiene que validar.</p>
+    )}
+  </section>
+
+  {/* Zona de arrastre: el camino rápido para subir todo junto. */}
+  <section class="mt-6" aria-label="Subir archivos" data-ficha={ficha.id} id="zona-wrap">
+    <label id="zona" for="subir-multi"
+      class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-neutral-300 bg-white/70 px-6 py-10 text-center transition-colors hover:border-primary data-[sobre=true]:border-primary data-[sobre=true]:bg-primary/5">
+      <svg class="w-10 h-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+      <span class="text-xl font-semibold text-primary">Soltá acá los archivos del caso</span>
+      <span class="text-base text-neutral-600">o tocá para elegirlos · PDF, fotos, Word o Excel · hasta 10 MB cada uno</span>
+    </label>
+    <input id="subir-multi" type="file" multiple accept={ACCEPT} class="sr-only" />
+
+    {/* Revisión: el asistente propone carpeta para cada archivo; se confirma o se corrige. */}
+    <div id="revision" class={`${tarjeta} mt-4 p-5 md:p-6 hidden`}>
+      <h2 class="text-lg font-semibold text-primary"><span class="text-accent-dark" aria-hidden="true">✦</span> Revisá dónde va cada archivo</h2>
+      <ul id="revision-lista" class="mt-3 divide-y divide-neutral-200"></ul>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button type="button" id="confirmar" class="rounded-2xl bg-primary text-white px-5 py-3 text-base font-medium hover:bg-primary-light transition-colors disabled:opacity-50">Subir y ordenar</button>
+        <button type="button" id="cancelar" class="rounded-2xl border border-neutral-300 px-5 py-3 text-base text-neutral-700">Cancelar</button>
+      </div>
+    </div>
+    <p id="msg" role="status" class="mt-3 text-lg text-neutral-700 min-h-7"></p>
+  </section>
+
+  {/* Carpetas. */}
+  <section aria-label="Carpetas" class="mt-4 grid gap-4 lg:grid-cols-2">
+    {visibles.map((c) => {
+      const archivos = porCategoria.get(c.clave) ?? [];
+      const sugerida = requeridas.has(c.clave);
+      const falta = sugerida && archivos.length === 0;
+      return (
+        <div class={`${tarjeta} p-5 ${falta ? 'border-dashed border-amber-300 bg-amber-50/40' : ''}`}>
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-semibold text-primary">{c.titulo}</h3>
+              <p class="text-sm text-neutral-600">{c.ayuda}</p>
+            </div>
+            {falta ? (
+              <span class="shrink-0 rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-medium text-amber-900">Falta</span>
+            ) : sugerida ? (
+              <span class="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-medium text-emerald-900">✓ Completo</span>
+            ) : null}
+          </div>
+
+          {archivos.length > 0 && (
+            <ul class="mt-3 space-y-3">
+              {archivos.map((d) => (
+                <li class="flex items-center gap-3">
+                  {VISIBLES.has(d.tipo) && d.tipo.startsWith('image/') ? (
+                    <img src={`/api/admin/documentos/${d.id}?ver=1`} alt="" loading="lazy" class="h-14 w-14 shrink-0 rounded-xl object-cover border border-neutral-200" />
+                  ) : (
+                    <span class="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-primary/8 text-sm font-semibold text-primary">{ext(d.nombre)}</span>
+                  )}
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-base font-medium text-neutral-900" title={d.nombre}>{d.nombre}</span>
+                    <span class="block text-sm text-neutral-600">{tamano(d.bytes ?? 0)} · {haceCuanto(d.subido)}</span>
+                    <span class="mt-1.5 flex flex-wrap items-center gap-2">
+                      {VISIBLES.has(d.tipo) && <a href={`/api/admin/documentos/${d.id}?ver=1`} target="_blank" rel="noopener" class={boton}>Ver</a>}
+                      <a href={`/api/admin/documentos/${d.id}`} class={boton}>Descargar</a>
+                      <select data-mover={d.id} aria-label={`Mover ${d.nombre} a otra carpeta`} class="rounded-full border border-neutral-300 bg-white px-2.5 py-1.5 text-sm text-neutral-700">
+                        {CATEGORIAS.map((o) => <option value={o.clave} selected={o.clave === d.categoria}>{o.clave === d.categoria ? `En: ${o.titulo}` : `Mover a ${o.titulo}`}</option>)}
+                      </select>
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <button type="button" data-cat={c.clave}
+            class={falta
+              ? 'mt-4 w-full rounded-2xl border-2 border-dashed border-amber-300 py-4 text-base font-medium text-amber-900 hover:bg-amber-100/60 transition-colors'
+              : 'mt-3 text-base text-primary underline'}>
+            {falta ? `+ Subir ${c.titulo.toLowerCase()}` : '+ Agregar a esta carpeta'}
+          </button>
+        </div>
+      );
+    })}
+  </section>
+
+  {ocultas.length > 0 && (
+    <section class="mt-6" aria-label="Otras carpetas">
+      <p class="text-sm uppercase tracking-[0.2em] text-neutral-500">Subir a otra carpeta</p>
+      <div class="mt-2 flex flex-wrap gap-2">
+        {ocultas.map((c) => (
+          <button type="button" data-cat={c.clave} class="rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-base text-neutral-700 hover:bg-neutral-100 transition-colors">+ {c.titulo}</button>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <script>
+    import { MAX_BYTES, TIPOS, extension, tamano } from '../../../lib/documentos';
+    import { CATEGORIAS, sugerirCategoria } from '../../../data/expediente';
+
+    const wrap = document.querySelector<HTMLElement>('#zona-wrap')!;
+    const fichaId = wrap.dataset.ficha!;
+    const zona = document.querySelector<HTMLElement>('#zona')!;
+    const selector = document.querySelector<HTMLInputElement>('#subir-multi')!;
+    const revision = document.querySelector<HTMLElement>('#revision')!;
+    const revisionLista = document.querySelector<HTMLElement>('#revision-lista')!;
+    const confirmar = document.querySelector<HTMLButtonElement>('#confirmar')!;
+    const cancelar = document.querySelector<HTMLButtonElement>('#cancelar')!;
+    const msg = document.querySelector<HTMLElement>('#msg')!;
+
+    interface Item { archivo: File; categoria: string; segura: boolean }
+    let items: Item[] = [];
+
+    // Valida y arma la lista; devuelve los archivos aceptables y avisa de los rechazados.
+    function aceptar(archivos: File[]): File[] {
+      const rechazados: string[] = [];
+      const ok = archivos.filter((f) => {
+        if (!(extension(f.name) in TIPOS)) { rechazados.push(`${f.name}: tipo no permitido`); return false; }
+        if (f.size > MAX_BYTES) { rechazados.push(`${f.name}: supera los 10 MB`); return false; }
+        return true;
+      });
+      msg.textContent = rechazados.join(' · ');
+      return ok;
+    }
+
+    async function subir(lista: Item[]) {
+      const errores: string[] = [];
+      for (const [i, it] of lista.entries()) {
+        msg.textContent = `Subiendo ${i + 1} de ${lista.length}…`;
+        const datos = new FormData();
+        datos.append('archivo', it.archivo);
+        datos.append('categoria', it.categoria);
+        const res = await fetch(`/api/admin/fichas/${fichaId}/documentos`, { method: 'POST', body: datos }).catch(() => null);
+        if (!res?.ok) errores.push(`${it.archivo.name}: ${(await res?.json().catch(() => ({})))?.error ?? 'no se pudo subir'}`);
+      }
+      if (errores.length === 0) { location.reload(); return; }
+      msg.textContent = errores.join(' · ');
+      confirmar.disabled = false;
+    }
+
+    function pintarRevision() {
+      revision.classList.toggle('hidden', items.length === 0);
+      confirmar.textContent = items.length === 1 ? 'Subir y ordenar 1 archivo' : `Subir y ordenar ${items.length} archivos`;
+      revisionLista.replaceChildren(
+        ...items.map((it, i) => {
+          const li = document.createElement('li');
+          li.className = 'py-3 flex flex-wrap items-center gap-x-4 gap-y-2';
+          const nombre = document.createElement('span');
+          nombre.className = 'min-w-48 flex-1 truncate text-base font-medium';
+          nombre.textContent = it.archivo.name;
+          const peso = document.createElement('span');
+          peso.className = 'text-sm text-neutral-600';
+          peso.textContent = tamano(it.archivo.size);
+          const sel = document.createElement('select');
+          sel.className = 'rounded-xl border border-neutral-300 bg-white px-3 py-2 text-base';
+          sel.setAttribute('aria-label', `Carpeta de ${it.archivo.name}`);
+          for (const c of CATEGORIAS) sel.add(new Option(c.titulo, c.clave, false, c.clave === it.categoria));
+          sel.addEventListener('change', () => { it.categoria = sel.value; it.segura = true; pintarRevision(); });
+          const etiqueta = document.createElement('span');
+          etiqueta.className = it.segura ? 'rounded-full bg-accent/15 px-2.5 py-0.5 text-sm text-accent-dark' : 'rounded-full bg-neutral-100 px-2.5 py-0.5 text-sm text-neutral-600';
+          etiqueta.textContent = it.segura ? '✦ sugerida' : 'elegí carpeta';
+          const quitar = document.createElement('button');
+          quitar.type = 'button';
+          quitar.className = 'text-base text-red-700 underline';
+          quitar.textContent = 'Quitar';
+          quitar.addEventListener('click', () => { items.splice(i, 1); pintarRevision(); });
+          li.append(nombre, peso, sel, etiqueta, quitar);
+          return li;
+        }),
+      );
+    }
+
+    function agregar(archivos: File[]) {
+      for (const f of aceptar(archivos)) {
+        if (items.some((x) => x.archivo.name === f.name && x.archivo.size === f.size)) continue;
+        const s = sugerirCategoria(f.name);
+        items.push({ archivo: f, categoria: s.clave, segura: s.segura });
+      }
+      pintarRevision();
+    }
+
+    selector.addEventListener('change', () => { agregar([...(selector.files ?? [])]); selector.value = ''; });
+    for (const ev of ['dragenter', 'dragover']) zona.addEventListener(ev, (e) => { e.preventDefault(); zona.dataset.sobre = 'true'; });
+    for (const ev of ['dragleave', 'drop']) zona.addEventListener(ev, () => { zona.dataset.sobre = 'false'; });
+    zona.addEventListener('drop', (e) => { e.preventDefault(); agregar([...(e.dataTransfer?.files ?? [])]); });
+    cancelar.addEventListener('click', () => { items = []; msg.textContent = ''; pintarRevision(); });
+    confirmar.addEventListener('click', () => { confirmar.disabled = true; subir(items); });
+
+    // Botones de cada carpeta: suben directo a esa carpeta, sin revisión.
+    for (const b of document.querySelectorAll<HTMLButtonElement>('[data-cat]')) {
+      b.addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.accept = selector.accept;
+        input.addEventListener('change', () => {
+          const ok = aceptar([...(input.files ?? [])]);
+          if (ok.length) subir(ok.map((archivo) => ({ archivo, categoria: b.dataset.cat!, segura: true })));
+        });
+        input.click();
+      });
+    }
+
+    // Mover un archivo de carpeta.
+    for (const s of document.querySelectorAll<HTMLSelectElement>('[data-mover]')) {
+      s.addEventListener('change', async () => {
+        s.disabled = true;
+        const res = await fetch(`/api/admin/documentos/${s.dataset.mover}`, {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ categoria: s.value }),
+        }).catch(() => null);
+        if (res?.ok) location.reload();
+        else { msg.textContent = 'No se pudo mover el archivo.'; s.disabled = false; }
+      });
+    }
+  </script>
+</AdminLayout>

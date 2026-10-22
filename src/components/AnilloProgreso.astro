@@ -1,0 +1,26 @@
+---
+// Anillo de avance del expediente. `avance` va de 0 a 1; null = sin lista sugerida.
+interface Props {
+  avance: number | null;
+  /** Texto del centro, p. ej. "3/5". */
+  texto: string;
+  tam?: number;
+}
+const { avance, texto, tam = 64 } = Astro.props;
+const r = 26;
+const circ = 2 * Math.PI * r;
+const lleno = avance === null ? 0 : avance;
+const color = avance === null ? '#a89f90' : avance >= 1 ? '#1e6b4f' : avance > 0 ? '#b8944c' : '#c2410c';
+---
+
+<div class="relative shrink-0" style={`width:${tam}px;height:${tam}px`} role="img" aria-label={`Avance: ${texto}`}>
+  <svg viewBox="0 0 64 64" width={tam} height={tam} class="-rotate-90">
+    <circle cx="32" cy="32" r={r} fill="none" stroke="#e8e3d8" stroke-width="6" />
+    <circle
+      cx="32" cy="32" r={r} fill="none" stroke={color} stroke-width="6" stroke-linecap="round"
+      stroke-dasharray={circ} stroke-dashoffset={circ * (1 - lleno)}
+      style="transition: stroke-dashoffset .8s cubic-bezier(.2,.7,.2,1)"
+    />
+  </svg>
+  <span class="absolute inset-0 grid place-items-center text-sm font-semibold text-primary tabular-nums">{texto}</span>
+</div>

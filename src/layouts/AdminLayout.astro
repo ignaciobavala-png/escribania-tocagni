@@ -14,14 +14,16 @@ const iconos = {
   nueva: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
   excel: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>',
   consultas: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  expedientes: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   turnos: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   vencimientos: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   salir: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10"/>',
 };
-// `movil: false` deja el ítem fuera de la barra inferior (entran cinco).
+// `movil: false` deja el ítem fuera de la barra inferior (entran seis).
 const nav = [
   { href: '/admin', texto: 'Inicio', icono: iconos.inicio, movil: true },
   { href: '/admin/consultas', texto: 'Consultas', icono: iconos.consultas, movil: true },
+  { href: '/admin/expedientes', texto: 'Expedientes', icono: iconos.expedientes, movil: true },
   { href: '/admin/turnos', texto: 'Turnos', icono: iconos.turnos, movil: true },
   { href: '/admin/vencimientos', texto: 'Vencimientos', icono: iconos.vencimientos, movil: true },
   { href: '/admin/nueva', texto: 'Nueva consulta', icono: iconos.nueva, movil: true },
@@ -29,7 +31,9 @@ const nav = [
 ];
 const navMovil = nav.filter((n) => n.movil);
 const activa = (href: string) =>
-  href === '/admin/consultas' ? ruta === href || ruta.startsWith('/admin/fichas') : ruta === href;
+  href === '/admin/consultas' ? ruta === href || ruta.startsWith('/admin/fichas')
+  : href === '/admin/expedientes' ? ruta.startsWith(href)
+  : ruta === href;
 ---
 
 <!doctype html>
@@ -103,7 +107,7 @@ const activa = (href: string) =>
 
     {/* En el teléfono la navegación va abajo, al alcance del pulgar. */}
     <nav
-      class="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-neutral-200 grid grid-cols-5 pb-[env(safe-area-inset-bottom)]"
+      class="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-neutral-200 grid grid-cols-6 pb-[env(safe-area-inset-bottom)]"
       aria-label="Principal"
     >
       {navMovil.map((n) => (

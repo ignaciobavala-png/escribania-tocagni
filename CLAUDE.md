@@ -511,6 +511,12 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
   Tipos por **extension** (`src/lib/documentos.ts`: pdf, fotos, Word, Excel),
   tope de 10 MB. No hay borrado a proposito. En `curl` hay que mandar `Origin`
   (proteccion CSRF de Astro); un navegador lo manda solo.
+- **Expedientes** (`/admin/expedientes`): documentos por carpeta (columna
+  `documentos.categoria`, migracion `0002`). Las categorias, la lista de
+  documentos **sugeridos por servicio** y el clasificador por nombre de archivo
+  viven en `src/data/expediente.ts`. **Las listas por servicio son un borrador
+  mio, no criterio juridico: hay que validarlas con Ines** (la pantalla lo dice).
+  Falta: entidad "cliente" (hoy un expediente = una ficha) y borrado de archivos.
 - **Local**: el binding `EMAIL` se simula (no sale ningun mail; el contenido se
   guarda en `.wrangler/tmp/email`). `AI` siempre pega a Cloudflare (cobra poco).
   Typecheck: `pnpm --package=typescript@5 dlx tsc --noEmit` (el build de Astro

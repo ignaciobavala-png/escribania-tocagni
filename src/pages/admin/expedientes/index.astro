@@ -1,0 +1,143 @@
+---
+import { env } from 'cloudflare:workers';
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AnilloProgreso from '../../../components/AnilloProgreso.astro';
+import { ESTADOS, claseEstado, nombreServicio, type Estado } from '../../../lib/fichas';
+import { haceCuanto } from '../../../lib/fechas';
+import { progreso } from '../../../data/expediente';
+
+export const prerender = false;
+
+interface FilaFicha { id: string; creada: string; nombre: string | null; servicio: string | null; urgencia: string; estado: Estado }
+
+const [fichas, docs] = await Promise.all([
+  env.DB.prepare(
+    `SELECT id, creada, nombre, servicio, urgencia, estado FROM fichas WHERE estado != 'cerrada'
+     ORDER BY CASE urgencia WHEN 'alta' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END, creada DESC LIMIT 200`,
+  ).all<FilaFicha>(),
+  env.DB.prepare(`SELECT ficha_id, coalesce(categoria, 'otros') AS categoria, count(*) AS n FROM documentos GROUP BY ficha_id, 2`).all<{ ficha_id: string; categoria: string; n: number }>(),
+]);
+
+// Categorías con archivos y total de archivos por expediente.
+const porFicha = new Map<string, { cats: Set<string>; total: number }>();
+for (const d of docs.results) {
+  const e = porFicha.get(d.ficha_id) ?? { cats: new Set<string>(), total: 0 };
+  e.cats.add(d.categoria);
+  e.total += d.n;
+  porFicha.set(d.ficha_id, e);
+}
+
+const filas = fichas.results.map((f) => {
+  const e = porFicha.get(f.id) ?? { cats: new Set<string>(), total: 0 };
+  const p = progreso(f.servicio, e.cats);
+  const grupo = p.avance === null ? 'sin_lista' : p.avance >= 1 ? 'completos' : 'incompletos';
+  return { f, p, total: e.total, grupo };
+});
+// Primero lo que más necesita atención: incompletos con menos avance.
+filas.sort((a, b) => (a.p.avance ?? 2) - (b.p.avance ?? 2));
+
+const cuenta = (g: string) => filas.filter((x) => x.grupo === g).length;
+const filtros = [
+  { valor: 'todos', texto: 'Todos', n: filas.length },
+  { valor: 'incompletos', texto: 'Incompletos', n: cuenta('incompletos') },
+  { valor: 'completos', texto: 'Completos', n: cuenta('completos') },
+  { valor: 'sin_lista', texto: 'Sin tipo de trámite', n: cuenta('sin_lista') },
+];
+const tarjeta = 'bg-white rounded-3xl border border-neutral-200 shadow-sm';
+---
+
+<AdminLayout title="Expedientes">
+  <header class="mb-7">
+    <h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-primary">Expedientes</h1>
+    <p class="mt-2 text-lg text-neutral-600 max-w-2xl">
+      La documentación de cada trámite, ordenada. Te muestro qué falta según el tipo de trámite y clasifico los archivos que subas.
+    </p>
+  </header>
+
+  {filas.length === 0 ? (
+    <section class={`${tarjeta} p-8 text-center`}>
+      <p class="text-xl font-medium text-primary">Todavía no hay expedientes</p>
+      <p class="mt-2 text-base text-neutral-600 max-w-md mx-auto">Cada consulta abierta tiene su expediente. Cargá una y empezá a subir la documentación.</p>
+      <a href="/admin/nueva" class="mt-5 inline-block rounded-2xl bg-primary text-white px-5 py-3 text-base font-medium">Nueva consulta</a>
+    </section>
+  ) : (
+    <>
+      <input id="buscar" type="search" placeholder="Buscar por cliente" aria-label="Buscar expedientes"
+        class="w-full max-w-md rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-base outline-none focus:ring-2 focus:ring-accent/50" />
+      <div id="filtros" class="mt-3 mb-5 flex flex-wrap gap-2" role="group" aria-label="Filtrar">
+        {filtros.map((f, i) => (
+          <button type="button" data-filtro={f.valor} aria-pressed={i === 0 ? 'true' : 'false'}
+            class="rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-base text-neutral-700 aria-pressed:bg-primary aria-pressed:border-primary aria-pressed:text-white transition-colors">
+            {f.texto} <span class="opacity-70 tabular-nums">{f.n}</span>
+          </button>
+        ))}
+      </div>
+
+      <ul id="lista" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {filas.map(({ f, p, total, grupo }) => (
+          <li data-grupo={grupo} data-texto={(f.nombre ?? '').toLowerCase()}>
+            <a href={`/admin/expedientes/${f.id}`} class={`${tarjeta} block h-full p-5 transition hover:-translate-y-0.5 hover:shadow-md`}>
+              <span class="flex items-start gap-4">
+                <AnilloProgreso avance={p.avance} texto={p.avance === null ? '—' : `${p.completos.length}/${p.requeridos.length}`} />
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-lg font-semibold text-primary">
+                    {f.urgencia === 'alta' && <span class="text-red-700" title="Urgente">● </span>}{f.nombre ?? 'Sin nombre'}
+                  </span>
+                  <span class="block truncate text-base text-neutral-600">{nombreServicio(f.servicio) ?? 'Tipo de trámite sin definir'}</span>
+                  <span class="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                    <span class={`rounded-full px-2.5 py-0.5 ${claseEstado[f.estado]}`}>{ESTADOS[f.estado]}</span>
+                    <span class="text-neutral-500">{total === 0 ? 'sin archivos' : total === 1 ? '1 archivo' : `${total} archivos`}</span>
+                  </span>
+                </span>
+              </span>
+              <span class="mt-4 block text-base">
+                {p.avance === null ? (
+                  <span class="text-neutral-600">Definí el tipo de trámite para ver qué documentación falta.</span>
+                ) : p.faltan.length === 0 ? (
+                  <span class="font-medium text-emerald-800">✓ Documentación completa</span>
+                ) : (
+                  <span class="flex flex-wrap gap-1.5">
+                    <span class="text-neutral-600">Falta:</span>
+                    {p.faltan.slice(0, 2).map((c) => <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-sm text-amber-900">{c.titulo}</span>)}
+                    {p.faltan.length > 2 && <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-sm text-amber-900">+{p.faltan.length - 2}</span>}
+                  </span>
+                )}
+              </span>
+              <span class="mt-2 block text-sm text-neutral-500">Ingresó {haceCuanto(f.creada)}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p id="sin-resultados" class="hidden mt-6 text-base text-neutral-600">Ningún expediente coincide.</p>
+    </>
+  )}
+
+  <script is:inline>
+    (() => {
+      const lista = document.getElementById('lista');
+      if (!lista) return;
+      const buscar = document.getElementById('buscar');
+      const vacio = document.getElementById('sin-resultados');
+      const botones = [...document.querySelectorAll('#filtros button')];
+      let filtro = 'todos';
+      const aplicar = () => {
+        const q = buscar.value.trim().toLowerCase();
+        let visibles = 0;
+        for (const li of lista.children) {
+          const ok = (filtro === 'todos' || li.dataset.grupo === filtro) && li.dataset.texto.includes(q);
+          li.hidden = !ok;
+          if (ok) visibles++;
+        }
+        vacio.classList.toggle('hidden', visibles > 0);
+      };
+      buscar.addEventListener('input', aplicar);
+      for (const b of botones) {
+        b.addEventListener('click', () => {
+          filtro = b.dataset.filtro;
+          for (const o of botones) o.setAttribute('aria-pressed', String(o === b));
+          aplicar();
+        });
+      }
+    })();
+  </script>
+</AdminLayout>

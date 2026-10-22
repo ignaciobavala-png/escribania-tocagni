@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { auditar } from '../../../../../lib/auditoria';
 import { MAX_BYTES, TIPOS, extension, limpiarNombre } from '../../../../../lib/documentos';
+import { esCategoria, sugerirCategoria } from '../../../../../data/expediente';
 
 export const prerender = false;
 
@@ -29,15 +30,18 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
   const id = crypto.randomUUID();
   const nombre = limpiarNombre(archivo.name);
+  // Si el cliente no indica carpeta, la sugiere el clasificador por nombre.
+  const pedida = form?.get('categoria');
+  const categoria = esCategoria(pedida) ? pedida : sugerirCategoria(nombre).clave;
   const clave = `fichas/${params.id}/${id}.${ext}`;
   await env.DOCS.put(clave, archivo.stream(), { httpMetadata: { contentType: TIPOS[ext] } });
-  await env.DB.prepare('INSERT INTO documentos (id, ficha_id, tipo, nombre, clave_r2, bytes) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(id, params.id, TIPOS[ext], nombre, clave, archivo.size)
+  await env.DB.prepare('INSERT INTO documentos (id, ficha_id, tipo, nombre, clave_r2, bytes, categoria) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, params.id, TIPOS[ext], nombre, clave, archivo.size, categoria)
     .run();
   await auditar(env.DB, usuario.email, 'documento_subido', {
     entidad: 'ficha',
     ref: params.id,
-    detalle: { documento: id, nombre, bytes: archivo.size },
+    detalle: { documento: id, nombre, bytes: archivo.size, categoria },
   });
   return Response.json({ id }, { status: 201 });
 };
