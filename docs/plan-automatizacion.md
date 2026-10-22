@@ -3,6 +3,23 @@
 > Rama: `automatizacion`. Documento de planificación: **todavía no hay código**.
 > Estado: borrador para revisar con Inés Tocagni. Última edición: 2026-10-22.
 
+## Estado al 2026-10-22
+
+**Hecho (solo local, nada deployado):** cimientos (D1, auditoría, login con
+Access validado en el middleware), panel PWA con dictado, consultas con estados
+y vencimientos, flujo chat → ficha → mail al estudio (el modelo no ve datos
+personales), importar/exportar Excel. Recursos ya creados en Cloudflare: base D1
+migrada, Email Sending habilitado para `escribaniatocagni.com`, usuarios
+`desarrollador` y `recepcion` cargados.
+
+**Falta para deployar:** crear la app de Access (`/admin*`, `/api/admin*`) y
+cargar `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` en `wrangler.jsonc`; cargar el
+usuario de Inés; probar el mail real y la voz en un celular (iPhone incluido);
+que Inés apruebe el texto de privacidad del formulario del chat.
+
+**Siguiente:** resumen diario por mail (cron) y, con una planilla real del
+estudio, ajustar los sinónimos de columnas del importador.
+
 ## 1. Objetivo
 
 Inés dio el visto bueno para automatizar con IA. El sitio ya tiene un asistente
