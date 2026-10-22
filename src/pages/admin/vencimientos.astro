@@ -1,0 +1,149 @@
+---
+import { env } from 'cloudflare:workers';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { fechaCorta, hoyAR, semaforo } from '../../lib/fechas';
+
+export const prerender = false;
+
+const hoy = hoyAR();
+
+interface FilaVenc { id: string; concepto: string; vence: string; ficha_id: string | null; nombre: string | null }
+interface FilaFicha { id: string; nombre: string | null; resumen: string | null }
+
+const [abiertos, resueltos, fichas] = await Promise.all([
+  env.DB.prepare(
+    `SELECT v.id, v.concepto, v.vence, v.ficha_id, f.nombre FROM vencimientos v LEFT JOIN fichas f ON f.id = v.ficha_id
+     WHERE v.estado = 'abierto' ORDER BY v.vence LIMIT 200`,
+  ).all<FilaVenc>(),
+  env.DB.prepare(
+    `SELECT v.id, v.concepto, v.vence, v.ficha_id, f.nombre FROM vencimientos v LEFT JOIN fichas f ON f.id = v.ficha_id
+     WHERE v.estado = 'resuelto' ORDER BY v.vence DESC LIMIT 15`,
+  ).all<FilaVenc>(),
+  env.DB.prepare(
+    `SELECT id, nombre, resumen FROM fichas WHERE estado != 'cerrada' ORDER BY creada DESC LIMIT 100`,
+  ).all<FilaFicha>(),
+]);
+
+const rojos = abiertos.results.filter((v) => semaforo(v.vence).nivel === 'rojo').length;
+
+const tarjeta = 'bg-white rounded-3xl border border-neutral-200 shadow-sm';
+const campo = 'mt-1.5 w-full rounded-2xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-base outline-none focus:ring-2 focus:ring-accent/50';
+const etiqueta = 'text-sm font-medium text-neutral-700';
+const boton = 'rounded-full border border-neutral-300 px-3.5 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors';
+---
+
+<AdminLayout title="Vencimientos">
+  <header class="mb-7">
+    <h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-primary">Vencimientos</h1>
+    <p class="mt-2 text-lg text-neutral-600">
+      Plazos que no se pueden pasar: certificados, libros, mandatos.{' '}
+      {rojos > 0 && <span class="text-red-700 font-medium">{rojos === 1 ? '1 requiere atención ya.' : `${rojos} requieren atención ya.`}</span>}
+    </p>
+  </header>
+
+  <div class="grid gap-6 lg:grid-cols-5">
+    <section aria-labelledby="h-nuevo" class={`${tarjeta} lg:col-span-2 p-5 md:p-7 self-start`}>
+      <h2 id="h-nuevo" class="text-xl font-semibold text-primary">Nuevo vencimiento</h2>
+      <form id="form" class="mt-4 space-y-4">
+        <label class="block"><span class={etiqueta}>Concepto</span>
+          <input name="concepto" maxlength="160" required placeholder="Ej.: Certificado de dominio" autocomplete="off" class={campo} /></label>
+        <label class="block"><span class={etiqueta}>Vence</span>
+          <input type="date" name="vence" min={hoy} required class={campo} /></label>
+        <label class="block"><span class={etiqueta}>Consulta (opcional)</span>
+          <select name="ficha_id" class={campo}>
+            <option value="">Sin consulta asociada</option>
+            {fichas.results.map((f) => (
+              <option value={f.id}>{f.nombre ?? 'Sin nombre'}{f.resumen ? ` — ${f.resumen.slice(0, 40)}` : ''}</option>
+            ))}
+          </select></label>
+        <button type="submit" id="guardar" class="w-full rounded-2xl bg-primary text-white py-3.5 text-base font-medium hover:bg-primary-light transition-colors disabled:opacity-50">Agregar vencimiento</button>
+        <p id="error" role="alert" class="text-base text-red-700 min-h-6"></p>
+      </form>
+    </section>
+
+    <div class="lg:col-span-3 space-y-6">
+      <section aria-labelledby="h-abiertos" class={`${tarjeta} p-5 md:p-7`}>
+        <h2 id="h-abiertos" class="text-xl font-semibold text-primary">Abiertos</h2>
+        {abiertos.results.length === 0 ? (
+          <div class="mt-4 rounded-2xl bg-neutral-50 border border-dashed border-neutral-300 p-6 text-center">
+            <p class="text-lg font-medium text-primary">No hay vencimientos abiertos</p>
+            <p class="mt-1 text-base text-neutral-600">Los que cargues se ordenan por fecha, con un semáforo: rojo si vence en una semana o ya venció.</p>
+          </div>
+        ) : (
+          <ul class="mt-2 divide-y divide-neutral-200">
+            {abiertos.results.map((v) => {
+              const s = semaforo(v.vence);
+              return (
+                <li class="py-3.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <span class={`w-3 h-3 shrink-0 rounded-full ${s.punto}`} aria-hidden="true"></span>
+                  <span class="flex-1 min-w-48 text-lg">
+                    {v.concepto}
+                    {v.nombre && (
+                      <a href={`/admin/fichas/${v.ficha_id}`} class="block text-base text-neutral-600 hover:text-primary">{v.nombre}</a>
+                    )}
+                  </span>
+                  <span class="text-right shrink-0">
+                    <span class={s.nivel === 'rojo' ? 'block text-base font-medium text-red-700' : 'block text-base text-neutral-700'}>{s.texto}</span>
+                    <span class="block text-sm text-neutral-600">{fechaCorta(v.vence)}</span>
+                  </span>
+                  <button type="button" data-venc={v.id} data-a="resuelto" class={boton}>Resolver</button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {resueltos.results.length > 0 && (
+        <section aria-labelledby="h-res" class={`${tarjeta} p-5 md:p-7`}>
+          <h2 id="h-res" class="text-xl font-semibold text-primary">Resueltos</h2>
+          <ul class="mt-2 divide-y divide-neutral-200">
+            {resueltos.results.map((v) => (
+              <li class="py-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-neutral-600">
+                <span class="flex-1 min-w-48 text-base line-through">{v.concepto}</span>
+                <span class="text-sm">{fechaCorta(v.vence)}</span>
+                <button type="button" data-venc={v.id} data-a="abierto" class={boton}>Reabrir</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  </div>
+
+  <script is:inline>
+    (() => {
+      const form = document.getElementById('form');
+      const error = document.getElementById('error');
+      const guardar = document.getElementById('guardar');
+      const enviar = async (url, metodo, cuerpo) => {
+        const r = await fetch(url, { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'No se pudo guardar.');
+      };
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        error.textContent = '';
+        guardar.disabled = true;
+        try {
+          await enviar('/api/admin/vencimientos', 'POST', Object.fromEntries(new FormData(form)));
+          location.reload();
+        } catch (err) {
+          error.textContent = err.message;
+          guardar.disabled = false;
+        }
+      });
+      for (const b of document.querySelectorAll('[data-venc]')) {
+        b.addEventListener('click', async () => {
+          b.disabled = true;
+          try {
+            await enviar(`/api/admin/vencimientos/${b.dataset.venc}`, 'PATCH', { estado: b.dataset.a });
+            location.reload();
+          } catch (err) {
+            b.disabled = false;
+            error.textContent = err.message;
+          }
+        });
+      }
+    })();
+  </script>
+</AdminLayout>

@@ -1,0 +1,110 @@
+---
+import { env } from 'cloudflare:workers';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { ESTADOS, claseEstado, nombreServicio, type Estado } from '../../lib/fichas';
+import { haceCuanto } from '../../lib/fechas';
+
+export const prerender = false;
+
+interface FilaFicha { id: string; creada: string; nombre: string | null; servicio: string | null; urgencia: string; estado: Estado; resumen: string | null; origen: string | null }
+
+// Todas, también las cerradas: el Inicio muestra solo las abiertas.
+const fichas = await env.DB.prepare(
+  `SELECT id, creada, nombre, servicio, urgencia, estado, resumen, origen FROM fichas
+   ORDER BY CASE estado WHEN 'cerrada' THEN 1 ELSE 0 END,
+            CASE urgencia WHEN 'alta' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END, creada DESC LIMIT 300`,
+).all<FilaFicha>();
+
+const cuenta = (e: Estado) => fichas.results.filter((f) => f.estado === e).length;
+const filtros: { valor: 'todas' | Estado; texto: string; n: number }[] = [
+  { valor: 'todas', texto: 'Todas', n: fichas.results.length },
+  { valor: 'nueva', texto: 'Nuevas', n: cuenta('nueva') },
+  { valor: 'en_curso', texto: 'En curso', n: cuenta('en_curso') },
+  { valor: 'esperando_documentacion', texto: 'Esperando documentación', n: cuenta('esperando_documentacion') },
+  { valor: 'cerrada', texto: 'Cerradas', n: cuenta('cerrada') },
+];
+const tarjeta = 'bg-white rounded-3xl border border-neutral-200 shadow-sm';
+---
+
+<AdminLayout title="Consultas">
+  <header class="mb-7 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-primary">Consultas</h1>
+      <p class="mt-2 text-lg text-neutral-600">Todo lo que entró por el chat, por carga manual o por Excel.</p>
+    </div>
+    <a href="/admin/nueva" class="rounded-2xl bg-primary text-white px-5 py-3 text-base font-medium hover:bg-primary-light transition-colors">Nueva consulta</a>
+  </header>
+
+  <section class={`${tarjeta} p-5 md:p-7`} aria-label="Listado de consultas">
+    {fichas.results.length === 0 ? (
+      <div class="rounded-2xl bg-neutral-50 border border-dashed border-neutral-300 p-6 text-center">
+        <p class="text-lg font-medium text-primary">Todavía no hay consultas</p>
+        <p class="mt-1 text-base text-neutral-600 max-w-md mx-auto">Llegan solas desde el chat del sitio (con aviso por mail), o las cargás vos a mano o desde un Excel.</p>
+      </div>
+    ) : (
+      <>
+        <input id="buscar" type="search" placeholder="Buscar por nombre o detalle" aria-label="Buscar consultas"
+          class="w-full rounded-2xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-base outline-none focus:ring-2 focus:ring-accent/50" />
+        <div id="filtros" class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado">
+          {filtros.map((f, i) => (
+            <button type="button" data-filtro={f.valor} aria-pressed={i === 0 ? 'true' : 'false'}
+              class="rounded-full border border-neutral-300 px-4 py-1.5 text-base text-neutral-700 aria-pressed:bg-primary aria-pressed:border-primary aria-pressed:text-white transition-colors">
+              {f.texto} <span class="opacity-70 tabular-nums">{f.n}</span>
+            </button>
+          ))}
+        </div>
+        <ul id="lista" class="mt-3 divide-y divide-neutral-200">
+          {fichas.results.map((f) => (
+            <li data-estado={f.estado} data-texto={`${f.nombre ?? ''} ${f.resumen ?? ''}`.toLowerCase()}>
+              <a href={`/admin/fichas/${f.id}`} class="block -mx-3 px-3 py-3.5 rounded-2xl min-h-14 transition-colors hover:bg-neutral-50">
+                <span class="flex items-baseline justify-between gap-3 text-lg">
+                  <span class="font-medium text-neutral-900">
+                    {f.urgencia === 'alta' && f.estado !== 'cerrada' && <span class="text-red-700" title="Urgente">● </span>}{f.nombre ?? 'Sin nombre'}
+                  </span>
+                  <span class="text-sm text-neutral-600 shrink-0">{haceCuanto(f.creada)}</span>
+                </span>
+                {f.resumen && <span class="block text-base text-neutral-600 line-clamp-1">{f.resumen}</span>}
+                <span class="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
+                  <span class={`rounded-full px-2.5 py-0.5 ${claseEstado[f.estado]}`}>{ESTADOS[f.estado]}</span>
+                  {f.origen === 'chat' && <span class="rounded-full px-2.5 py-0.5 bg-accent/15 text-accent-dark">✦ Desde el chat</span>}
+                  {f.origen === 'excel' && <span class="rounded-full px-2.5 py-0.5 bg-neutral-100 text-neutral-600">Desde Excel</span>}
+                  {nombreServicio(f.servicio) && <span class="text-neutral-600">{nombreServicio(f.servicio)}</span>}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p id="sin-resultados" class="hidden mt-4 text-base text-neutral-600">Ninguna consulta coincide con la búsqueda.</p>
+      </>
+    )}
+  </section>
+
+  <script is:inline>
+    (() => {
+      const lista = document.getElementById('lista');
+      if (!lista) return;
+      const buscar = document.getElementById('buscar');
+      const vacio = document.getElementById('sin-resultados');
+      const botones = [...document.querySelectorAll('#filtros button')];
+      let filtro = 'todas';
+      const aplicar = () => {
+        const q = buscar.value.trim().toLowerCase();
+        let visibles = 0;
+        for (const li of lista.children) {
+          const ok = (filtro === 'todas' || li.dataset.estado === filtro) && li.dataset.texto.includes(q);
+          li.hidden = !ok;
+          if (ok) visibles++;
+        }
+        vacio.classList.toggle('hidden', visibles > 0);
+      };
+      buscar.addEventListener('input', aplicar);
+      for (const b of botones) {
+        b.addEventListener('click', () => {
+          filtro = b.dataset.filtro;
+          for (const o of botones) o.setAttribute('aria-pressed', String(o === b));
+          aplicar();
+        });
+      }
+    })();
+  </script>
+</AdminLayout>
