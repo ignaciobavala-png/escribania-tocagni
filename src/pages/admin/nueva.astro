@@ -1,94 +1,280 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { ACCEPT } from '../../lib/documentos';
+import { URGENCIAS, serviciosOpciones } from '../../lib/fichas';
 
 export const prerender = false;
 
-const campo = 'mt-2 w-full border border-neutral-300 bg-white px-4 py-3 text-lg';
-const etiqueta = 'text-base uppercase tracking-[0.2em] text-neutral-600';
+// Los trámites como chips: "02 · Operaciones inmobiliarias" -> número + título.
+const tramites = serviciosOpciones.map((o) => ({ valor: o.valor, titulo: o.texto.split(' · ')[1] ?? o.texto }));
+
+const etiqueta = 'text-sm font-medium text-neutral-700';
+const campo = 'campo-input mt-1.5 w-full rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-base outline-none focus:ring-2 focus:ring-accent/50';
+const iaMarca = 'ia hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent-dark';
 ---
 
 <AdminLayout title="Nueva consulta">
-  <h1 class="font-serif text-3xl md:text-4xl text-primary tracking-tight">Nueva consulta</h1>
-  <div class="w-16 h-px bg-accent mt-4 mb-8"></div>
+  <div slot="fondo" class="fondo" aria-hidden="true">
+    <span class="halo halo-a"></span>
+    <span class="halo halo-b"></span>
+  </div>
 
-  <form id="form" class="max-w-xl space-y-6">
-    {/* El dictado va primero: es lo que se usa desde el teléfono, en la calle. */}
-    <div>
-      <button
-        type="button"
-        id="mic"
-        aria-pressed="false"
-        class="w-full min-h-24 bg-primary text-white text-xl font-medium flex items-center justify-center gap-4 border-2 border-primary aria-pressed:bg-red-700 aria-pressed:border-red-700 disabled:opacity-60"
-      >
-        <span id="mic-punto" class="w-4 h-4 rounded-full bg-accent-light" aria-hidden="true"></span>
-        <span id="mic-texto">Dictar la consulta</span>
-        <span id="mic-tiempo" class="tabular-nums text-white/80 hidden"></span>
+  <header class="mb-6 rise">
+    <h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-primary">Nueva consulta</h1>
+    <p class="mt-2 text-lg text-neutral-600 max-w-2xl">
+      Contame el caso: hablá, escribí o soltá los archivos. Armo la ficha por vos y solo tenés que confirmarla.
+    </p>
+  </header>
+
+  <form id="form" class="grid gap-5 lg:grid-cols-5 items-start" novalidate>
+    {/* Compositor: acá se cuenta el caso, de la forma que sea más cómoda. */}
+    <section class="glass rounded-3xl lg:col-span-3 p-5 md:p-7 rise" style="--d:60ms" aria-labelledby="h-relato">
+      <h2 id="h-relato" class="sr-only">Contá la consulta</h2>
+      <textarea
+        id="relato"
+        rows="7"
+        placeholder="Ej.: Marta Gómez, 11 5527 6746. Quiere vender un departamento en Belgrano, le falta el certificado de dominio y es urgente…"
+        class="w-full resize-none bg-transparent text-xl leading-relaxed text-neutral-900 outline-none placeholder:text-neutral-400"
+      ></textarea>
+
+      <ul id="adjuntos" class="mt-2 flex flex-wrap gap-2" aria-label="Archivos adjuntos"></ul>
+
+      <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-white/70 pt-4">
+        <button
+          type="button"
+          id="mic"
+          aria-pressed="false"
+          class="inline-flex items-center gap-2.5 rounded-full bg-primary px-5 py-3 text-base font-medium text-white transition hover:bg-primary-light aria-pressed:bg-red-700 disabled:opacity-60"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+          <span id="mic-texto">Dictar</span>
+          <span id="mic-tiempo" class="hidden tabular-nums text-white/80"></span>
+        </button>
+
+        <label for="archivos" class="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-neutral-300/80 bg-white/60 px-5 py-3 text-base font-medium text-neutral-700 transition hover:bg-white">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.6 8.6a2 2 0 0 1-3-3L15 7"/></svg>
+          Adjuntar
+        </label>
+        <input id="archivos" type="file" multiple accept={ACCEPT} class="sr-only" />
+
+        <span id="estado" role="status" class="ml-auto text-base text-neutral-600"></span>
+      </div>
+      <p class="mt-3 text-sm text-neutral-500">También podés arrastrar archivos a cualquier parte de la pantalla.</p>
+    </section>
+
+    {/* Ficha: se completa sola con lo que cuentes y se puede corregir. */}
+    <section id="ficha" class="glass rounded-3xl lg:col-span-2 p-5 md:p-7 rise" style="--d:140ms" aria-labelledby="h-ficha">
+      <div class="flex items-center justify-between gap-3">
+        <h2 id="h-ficha" class="text-xl font-semibold text-primary">Ficha</h2>
+        <span id="pensando" class="hidden items-center gap-2 rounded-full bg-primary/8 px-3 py-1 text-sm font-medium text-primary">
+          <span class="punto-vivo" aria-hidden="true"></span>Entendiendo…
+        </span>
+      </div>
+
+      <div class="mt-4 space-y-4">
+        <div data-campo="nombre">
+          <div class="flex items-center justify-between"><label for="nombre" class={etiqueta}>Nombre</label><span class={iaMarca}>✦ asistente</span></div>
+          <input id="nombre" name="nombre" autocomplete="off" class={campo} />
+        </div>
+        <div data-campo="contacto">
+          <div class="flex items-center justify-between"><label for="contacto" class={etiqueta}>Teléfono o mail</label><span class={iaMarca}>✦ asistente</span></div>
+          <input id="contacto" name="contacto" autocomplete="off" autocapitalize="off" class={campo} />
+        </div>
+
+        <div data-campo="servicio">
+          <div class="flex items-center justify-between"><span class={etiqueta} id="l-tramite">Trámite</span><span class={iaMarca}>✦ asistente</span></div>
+          <div class="mt-1.5 flex flex-wrap gap-2" role="group" aria-labelledby="l-tramite">
+            {tramites.map((t) => (
+              <button type="button" data-servicio={t.valor} aria-pressed="false"
+                class="rounded-full border border-neutral-300/80 bg-white/60 px-3.5 py-1.5 text-sm text-neutral-700 transition aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-white hover:bg-white aria-pressed:hover:bg-primary">
+                <span class="opacity-60 tabular-nums">{t.valor}</span> {t.titulo}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div data-campo="urgencia">
+          <div class="flex items-center justify-between"><span class={etiqueta} id="l-urg">Urgencia</span><span class={iaMarca}>✦ asistente</span></div>
+          <div class="mt-1.5 grid grid-cols-3 gap-1 rounded-2xl bg-white/50 p-1" role="group" aria-labelledby="l-urg">
+            {Object.entries(URGENCIAS).map(([v, t]) => (
+              <button type="button" data-urgencia={v} aria-pressed={v === 'normal' ? 'true' : 'false'}
+                class="rounded-xl py-2 text-base text-neutral-700 transition aria-pressed:bg-white aria-pressed:font-semibold aria-pressed:text-primary aria-pressed:shadow-sm data-[v=alta]:aria-pressed:text-red-700" data-v={v}>{t}</button>
+            ))}
+          </div>
+        </div>
+
+        <div data-campo="resumen">
+          <div class="flex items-center justify-between"><label for="resumen" class={etiqueta}>Detalle</label><span class={iaMarca}>✦ asistente</span></div>
+          <textarea id="resumen" name="resumen" rows="3" class={`${campo} resize-none`}></textarea>
+        </div>
+      </div>
+
+      <button type="submit" id="crear" disabled
+        class="mt-6 w-full rounded-2xl bg-primary py-4 text-lg font-semibold text-white shadow-lg shadow-primary/20 transition hover:bg-primary-light disabled:opacity-40 disabled:shadow-none">
+        Crear consulta
       </button>
-      <p id="estado" role="status" class="mt-3 text-lg text-neutral-700 min-h-7">
-        Tocá, hablá y tocá de nuevo para terminar.
-      </p>
-    </div>
-
-    <label class="block"><span class={etiqueta}>Detalle</span>
-      <textarea name="resumen" rows="6" class={campo}></textarea></label>
-    <label class="block"><span class={etiqueta}>Nombre</span>
-      <input name="nombre" autocomplete="off" class={campo} /></label>
-    <label class="block"><span class={etiqueta}>Teléfono o mail</span>
-      <input name="contacto" autocomplete="off" autocapitalize="off" class={campo} /></label>
-
-    <div>
-      <span class={etiqueta}>Archivos (opcional)</span>
-      <label for="archivos" class="mt-2 flex cursor-pointer flex-col items-center justify-center gap-1 border-2 border-dashed border-neutral-300 bg-white px-4 py-6 text-center hover:border-primary">
-        <span class="text-lg font-medium text-primary">Elegir archivos o sacar una foto</span>
-        <span class="text-base text-neutral-600">PDF, fotos, Word o Excel · hasta 10 MB cada uno</span>
-      </label>
-      <input id="archivos" type="file" multiple accept={ACCEPT} class="sr-only" />
-      <ul id="lista-archivos" class="mt-2 divide-y divide-neutral-200"></ul>
-    </div>
-
-    <button type="submit" id="guardar" class="w-full bg-primary text-white py-4 text-lg font-medium disabled:opacity-50">Guardar</button>
-    <p id="error" role="alert" class="text-lg text-red-700 min-h-7"></p>
+      <p class="mt-2 text-center text-sm text-neutral-500">o presioná Ctrl + Enter</p>
+      <p id="error" role="alert" class="mt-2 text-base text-red-700 min-h-6"></p>
+    </section>
   </form>
+
+  {/* Se muestra al arrastrar archivos sobre la pantalla. */}
+  <div id="soltar" class="fixed inset-0 z-50 hidden place-items-center bg-primary/50 backdrop-blur-sm">
+    <p class="rounded-3xl bg-white px-10 py-8 text-2xl font-semibold text-primary shadow-2xl">Soltá para adjuntar</p>
+  </div>
+
+  <style is:global>
+    .punto-vivo { position: relative; width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: #b8944c; }
+    .punto-vivo::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: inherit; animation: nc-onda 1.4s ease-out infinite; }
+    @keyframes nc-onda { to { transform: scale(3.2); opacity: 0; } }
+
+    /* Mientras el asistente interpreta, los campos "respiran". */
+    #ficha[data-pensando='true'] .campo-input { animation: nc-pulso 1.2s ease-in-out infinite; }
+    @keyframes nc-pulso { 50% { background-color: rgb(199 167 106 / 0.25); } }
+
+    /* Un campo recién completado destella en bronce y se asienta. */
+    .nc-llenado { animation: nc-llenado 1.4s ease-out; }
+    @keyframes nc-llenado { from { background-color: rgb(199 167 106 / 0.55); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .punto-vivo::after, #ficha[data-pensando='true'] .campo-input, .nc-llenado { animation: none; }
+    }
+  </style>
 </AdminLayout>
 
 <script>
   import { MAX_BYTES, TIPOS, extension, tamano } from '../../lib/documentos';
+  import { categoriaPorClave, sugerirCategoria } from '../../data/expediente';
 
   const MAX_SEG = 180; // tope de grabación; el endpoint también limita el tamaño
+  const ESPERA_MS = 1500; // pausa al escribir antes de interpretar
 
-  const form = document.querySelector<HTMLFormElement>('#form')!;
-  const mic = document.querySelector<HTMLButtonElement>('#mic')!;
-  const micTexto = document.querySelector<HTMLElement>('#mic-texto')!;
-  const micTiempo = document.querySelector<HTMLElement>('#mic-tiempo')!;
-  const micPunto = document.querySelector<HTMLElement>('#mic-punto')!;
-  const estado = document.querySelector<HTMLElement>('#estado')!;
-  const error = document.querySelector<HTMLElement>('#error')!;
-  const guardar = document.querySelector<HTMLButtonElement>('#guardar')!;
-  const detalle = form.elements.namedItem('resumen') as HTMLTextAreaElement;
+  const $ = <T extends HTMLElement>(s: string) => document.querySelector<T>(s)!;
+  const form = $<HTMLFormElement>('#form');
+  const relato = $<HTMLTextAreaElement>('#relato');
+  const estado = $('#estado');
+  const error = $('#error');
+  const crear = $<HTMLButtonElement>('#crear');
+  const ficha = $('#ficha');
+  const pensando = $('#pensando');
+  const mic = $<HTMLButtonElement>('#mic');
+  const micTexto = $('#mic-texto');
+  const micTiempo = $('#mic-tiempo');
+  const nombre = $<HTMLInputElement>('#nombre');
+  const contacto = $<HTMLInputElement>('#contacto');
+  const resumen = $<HTMLTextAreaElement>('#resumen');
 
+  type Campo = 'nombre' | 'contacto' | 'servicio' | 'urgencia' | 'resumen';
+  let servicio = '';
+  let urgencia = 'normal';
+  // Lo que la persona tocó a mano: el asistente no lo vuelve a pisar.
+  const tocado = new Set<Campo>();
+
+  const marca = (c: Campo) => document.querySelector<HTMLElement>(`[data-campo="${c}"] .ia`)!;
+  const quitarMarca = (c: Campo) => marca(c).classList.add('hidden');
+
+  function validarCrear() {
+    crear.disabled = !(relato.value.trim() || nombre.value.trim() || resumen.value.trim());
+  }
+
+  // ---- Campos de la ficha --------------------------------------------------
+  function pintarServicio() {
+    document.querySelectorAll<HTMLElement>('[data-servicio]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.servicio === servicio)));
+  }
+  function pintarUrgencia() {
+    document.querySelectorAll<HTMLElement>('[data-urgencia]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.urgencia === urgencia)));
+  }
+  function destello(el: HTMLElement) {
+    el.classList.remove('nc-llenado');
+    void el.offsetWidth; // reinicia la animación
+    el.classList.add('nc-llenado');
+  }
+
+  for (const [el, c] of [[nombre, 'nombre'], [contacto, 'contacto'], [resumen, 'resumen']] as [HTMLInputElement, Campo][]) {
+    el.addEventListener('input', () => { tocado.add(c); quitarMarca(c); validarCrear(); });
+  }
+  document.querySelectorAll<HTMLButtonElement>('[data-servicio]').forEach((b) =>
+    b.addEventListener('click', () => {
+      servicio = servicio === b.dataset.servicio ? '' : b.dataset.servicio!;
+      tocado.add('servicio'); quitarMarca('servicio'); pintarServicio();
+    }),
+  );
+  document.querySelectorAll<HTMLButtonElement>('[data-urgencia]').forEach((b) =>
+    b.addEventListener('click', () => {
+      urgencia = b.dataset.urgencia!;
+      tocado.add('urgencia'); quitarMarca('urgencia'); pintarUrgencia();
+    }),
+  );
+
+  // ---- El asistente interpreta el relato ----------------------------------
+  interface Datos { nombre: string | null; contacto: string | null; servicio: string | null; urgencia: string; resumen: string | null; via: 'ia' | 'reglas' }
+  let pedido = 0;
+  let ultimo = '';
+  let espera: number | undefined;
+
+  function aplicar(d: Datos) {
+    const poner = (c: Campo, el: HTMLInputElement | HTMLTextAreaElement, v: string | null) => {
+      if (!v || tocado.has(c)) return;
+      el.value = v; destello(el); marca(c).classList.remove('hidden');
+    };
+    poner('nombre', nombre, d.nombre);
+    poner('contacto', contacto, d.contacto);
+    poner('resumen', resumen, d.resumen);
+    if (d.servicio && !tocado.has('servicio')) { servicio = d.servicio; pintarServicio(); marca('servicio').classList.remove('hidden'); }
+    if (!tocado.has('urgencia')) { urgencia = d.urgencia; pintarUrgencia(); if (d.urgencia !== 'normal') marca('urgencia').classList.remove('hidden'); }
+  }
+
+  async function interpretar() {
+    const texto = relato.value.trim();
+    if (texto.length < 15 || texto === ultimo) return;
+    ultimo = texto;
+    const mio = ++pedido;
+    ficha.dataset.pensando = 'true';
+    pensando.classList.replace('hidden', 'inline-flex');
+    estado.textContent = '';
+    try {
+      const res = await fetch('/api/admin/extraer', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texto }) });
+      if (!res.ok) throw new Error();
+      const d = (await res.json()) as Datos;
+      if (mio !== pedido) return; // llegó una respuesta más nueva
+      aplicar(d);
+      estado.textContent = d.via === 'ia' ? '✦ Listo, revisá la ficha' : 'Completé lo básico (el asistente no respondió)';
+    } catch {
+      if (mio === pedido) estado.textContent = 'No pude interpretar el texto. Completá la ficha a mano.';
+    } finally {
+      if (mio === pedido) {
+        delete ficha.dataset.pensando;
+        pensando.classList.replace('inline-flex', 'hidden');
+        validarCrear();
+      }
+    }
+  }
+
+  relato.addEventListener('input', () => {
+    validarCrear();
+    clearTimeout(espera);
+    espera = window.setTimeout(interpretar, ESPERA_MS);
+  });
+  relato.addEventListener('blur', () => { clearTimeout(espera); interpretar(); });
+
+  // ---- Dictado por voz -----------------------------------------------------
   let grabador: MediaRecorder | null = null;
   let trozos: Blob[] = [];
   let reloj: number | undefined;
-
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   function reposo() {
     clearInterval(reloj);
     mic.setAttribute('aria-pressed', 'false');
-    micTexto.textContent = 'Dictar la consulta';
+    micTexto.textContent = 'Dictar';
     micTiempo.classList.add('hidden');
-    micPunto.classList.remove('motion-safe:animate-pulse');
   }
 
   mic.addEventListener('click', async () => {
-    if (grabador?.state === 'recording') {
-      grabador.stop();
-      return;
-    }
+    if (grabador?.state === 'recording') { grabador.stop(); return; }
     error.textContent = '';
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      error.textContent = 'Este navegador no permite grabar audio. Escribí el detalle a mano.';
+      error.textContent = 'Este navegador no permite grabar audio. Escribí el caso a mano.';
       return;
     }
     try {
@@ -103,17 +289,15 @@ const etiqueta = 'text-base uppercase tracking-[0.2em] text-neutral-600';
         mic.disabled = true;
         estado.textContent = 'Transcribiendo…';
         try {
-          const res = await fetch('/api/admin/dictar', {
-            method: 'POST',
-            body: new Blob(trozos, { type: rec.mimeType || 'audio/webm' }),
-          });
+          const res = await fetch('/api/admin/dictar', { method: 'POST', body: new Blob(trozos, { type: rec.mimeType || 'audio/webm' }) });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error);
           if (!data.texto) {
             estado.textContent = 'No se escuchó nada. Probá de nuevo, más cerca del micrófono.';
           } else {
-            detalle.value = [detalle.value.trim(), data.texto].filter(Boolean).join(' ');
-            estado.textContent = 'Listo. Revisá el texto antes de guardar.';
+            relato.value = [relato.value.trim(), data.texto].filter(Boolean).join(' ');
+            validarCrear();
+            interpretar(); // sin esperar: recién terminó de hablar
           }
         } catch (e) {
           estado.textContent = '';
@@ -127,88 +311,126 @@ const etiqueta = 'text-base uppercase tracking-[0.2em] text-neutral-600';
       mic.setAttribute('aria-pressed', 'true');
       micTexto.textContent = 'Grabando · tocá para terminar';
       micTiempo.classList.remove('hidden');
-      micPunto.classList.add('motion-safe:animate-pulse');
       estado.textContent = '';
       let seg = 0;
       micTiempo.textContent = mmss(0);
-      reloj = window.setInterval(() => {
-        micTiempo.textContent = mmss(++seg);
-        if (seg >= MAX_SEG) rec.stop();
-      }, 1000);
+      reloj = window.setInterval(() => { micTiempo.textContent = mmss(++seg); if (seg >= MAX_SEG) rec.stop(); }, 1000);
     } catch {
       error.textContent = 'No hay permiso para usar el micrófono. Habilitalo en los ajustes del navegador.';
     }
   });
 
-  // Archivos elegidos: se suben después de crear la consulta, de a uno.
-  const selector = document.querySelector<HTMLInputElement>('#archivos')!;
-  const listaArchivos = document.querySelector<HTMLElement>('#lista-archivos')!;
+  // ---- Archivos ------------------------------------------------------------
+  const adjuntosEl = $('#adjuntos');
+  const selector = $<HTMLInputElement>('#archivos');
+  const soltar = $('#soltar');
   let archivos: File[] = [];
 
-  function pintarArchivos() {
-    listaArchivos.replaceChildren(
+  function pintarAdjuntos() {
+    adjuntosEl.replaceChildren(
       ...archivos.map((f, i) => {
         const li = document.createElement('li');
-        li.className = 'flex items-center gap-3 py-2 text-lg';
-        const nombre = document.createElement('span');
-        nombre.className = 'flex-1 truncate';
-        nombre.textContent = f.name;
-        const peso = document.createElement('span');
-        peso.className = 'text-base text-neutral-600 shrink-0';
-        peso.textContent = tamano(f.size);
+        li.className = 'flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white/70 py-1.5 pl-1.5 pr-3 text-sm';
+        const ext = document.createElement('span');
+        ext.className = 'grid h-9 w-9 place-items-center rounded-xl bg-primary/8 text-xs font-semibold text-primary';
+        ext.textContent = extension(f.name).toUpperCase().slice(0, 4);
+        const cuerpo = document.createElement('span');
+        cuerpo.className = 'min-w-0';
+        const nom = document.createElement('span');
+        nom.className = 'block max-w-48 truncate font-medium text-neutral-800';
+        nom.textContent = f.name;
+        const cat = document.createElement('span');
+        cat.className = 'block text-xs text-neutral-600';
+        const s = sugerirCategoria(f.name);
+        cat.textContent = `${s.segura ? '✦ ' : ''}${categoriaPorClave(s.clave).titulo} · ${tamano(f.size)}`;
+        cuerpo.append(nom, cat);
         const quitar = document.createElement('button');
         quitar.type = 'button';
-        quitar.className = 'min-h-12 px-3 text-base text-red-700 underline';
-        quitar.textContent = 'Quitar';
-        quitar.addEventListener('click', () => {
-          archivos.splice(i, 1);
-          pintarArchivos();
-        });
-        li.append(nombre, peso, quitar);
+        quitar.className = 'ml-1 text-lg leading-none text-neutral-500 hover:text-red-700';
+        quitar.setAttribute('aria-label', `Quitar ${f.name}`);
+        quitar.textContent = '×';
+        quitar.addEventListener('click', () => { archivos.splice(i, 1); pintarAdjuntos(); });
+        li.append(ext, cuerpo, quitar);
         return li;
       }),
     );
   }
 
-  selector.addEventListener('change', () => {
-    error.textContent = '';
+  function agregar(nuevos: File[]) {
     const rechazados: string[] = [];
-    for (const f of selector.files ?? []) {
+    for (const f of nuevos) {
       if (!(extension(f.name) in TIPOS)) rechazados.push(`${f.name}: tipo no permitido`);
       else if (f.size > MAX_BYTES) rechazados.push(`${f.name}: supera los 10 MB`);
       else if (!archivos.some((a) => a.name === f.name && a.size === f.size)) archivos.push(f);
     }
-    selector.value = '';
-    if (rechazados.length) error.textContent = rechazados.join(' · ');
-    pintarArchivos();
+    error.textContent = rechazados.join(' · ');
+    pintarAdjuntos();
+  }
+
+  selector.addEventListener('change', () => { agregar([...(selector.files ?? [])]); selector.value = ''; });
+
+  // Arrastrar archivos a cualquier parte: se muestra un aviso y se adjuntan al soltar.
+  const traeArchivos = (e: DragEvent) => [...(e.dataTransfer?.types ?? [])].includes('Files');
+  let profundidad = 0;
+  window.addEventListener('dragenter', (e) => { if (traeArchivos(e)) { profundidad++; soltar.classList.replace('hidden', 'grid'); } });
+  window.addEventListener('dragleave', (e) => { if (traeArchivos(e) && --profundidad <= 0) { profundidad = 0; soltar.classList.replace('grid', 'hidden'); } });
+  window.addEventListener('dragover', (e) => { if (traeArchivos(e)) e.preventDefault(); });
+  window.addEventListener('drop', (e) => {
+    if (!traeArchivos(e)) return;
+    e.preventDefault();
+    profundidad = 0;
+    soltar.classList.replace('grid', 'hidden');
+    agregar([...(e.dataTransfer?.files ?? [])]);
   });
 
+  // ---- Crear ---------------------------------------------------------------
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     error.textContent = '';
-    guardar.disabled = true;
-    guardar.textContent = 'Guardando…';
+    clearTimeout(espera);
+    const datos = {
+      nombre: nombre.value.trim(),
+      contacto: contacto.value.trim(),
+      servicio,
+      urgencia,
+      // Si el asistente no llegó a resumir, queda el relato tal cual: no se pierde nada.
+      resumen: resumen.value.trim() || relato.value.trim(),
+    };
+    if (!datos.nombre && !datos.resumen) { error.textContent = 'Contá el caso o completá el nombre.'; return; }
+
+    crear.disabled = true;
+    crear.textContent = 'Creando…';
     const res = await fetch('/api/admin/fichas', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(Object.fromEntries(new FormData(form))),
+      body: JSON.stringify(datos),
     }).catch(() => null);
     if (!res?.ok) {
       error.textContent = (await res?.json().catch(() => ({})))?.error ?? 'No se pudo guardar. Revisá la conexión.';
-      guardar.disabled = false;
-      guardar.textContent = 'Guardar';
+      crear.disabled = false;
+      crear.textContent = 'Crear consulta';
       return;
     }
     const { id } = await res.json();
+
+    // La consulta ya existe: los archivos se suben de a uno y el servidor los clasifica.
     let fallaron = 0;
     for (const [i, f] of archivos.entries()) {
-      guardar.textContent = `Subiendo archivos (${i + 1}/${archivos.length})…`;
-      const datos = new FormData();
-      datos.append('archivo', f);
-      const subida = await fetch(`/api/admin/fichas/${id}/documentos`, { method: 'POST', body: datos }).catch(() => null);
+      crear.textContent = `Subiendo archivos (${i + 1}/${archivos.length})…`;
+      const fd = new FormData();
+      fd.append('archivo', f);
+      const subida = await fetch(`/api/admin/fichas/${id}/documentos`, { method: 'POST', body: fd }).catch(() => null);
       if (!subida?.ok) fallaron++;
     }
-    // La consulta ya existe: se va a su ficha aunque algún archivo haya fallado, y ahí se avisa.
-    location.href = `/admin/fichas/${id}?nueva=1${fallaron ? `&fallaron=${fallaron}` : ''}`;
+    // Con archivos, lo útil es ver el expediente ya ordenado; si algo falló, la ficha lo avisa.
+    location.href = fallaron
+      ? `/admin/fichas/${id}?nueva=1&fallaron=${fallaron}`
+      : archivos.length ? `/admin/expedientes/${id}` : `/admin/fichas/${id}?nueva=1`;
   });
+
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !crear.disabled) form.requestSubmit();
+  });
+
+  validarCrear();
 </script>

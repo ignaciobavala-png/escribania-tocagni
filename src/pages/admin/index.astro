@@ -322,55 +322,6 @@ const stats = [
   </div>
 
   <style>
-    /* Fondo fijo detrás de todo: degradado cálido + dos halos que flotan despacio. */
-    .fondo {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      overflow: hidden;
-      background: linear-gradient(160deg, #f6f2ea 0%, #ece7dd 55%, #e4e8ee 100%);
-    }
-    .halo {
-      position: absolute;
-      border-radius: 9999px;
-      filter: blur(90px);
-      opacity: 0.55;
-    }
-    .halo-a {
-      width: 38rem; height: 38rem; top: -12rem; right: -8rem;
-      background: #c7a76a;
-      animation: flotar 22s ease-in-out infinite alternate;
-    }
-    .halo-b {
-      width: 34rem; height: 34rem; bottom: -14rem; left: 12rem;
-      background: #264468;
-      opacity: 0.32;
-      animation: flotar 28s ease-in-out infinite alternate-reverse;
-    }
-    @keyframes flotar {
-      to { transform: translate(-3rem, 2.5rem) scale(1.08); }
-    }
-
-    /* Vidrio: blanco translúcido, desenfoque del fondo y un borde de luz arriba. */
-    .glass {
-      background: rgb(255 255 255 / 0.55);
-      -webkit-backdrop-filter: blur(22px) saturate(1.4);
-      backdrop-filter: blur(22px) saturate(1.4);
-      border: 1px solid rgb(255 255 255 / 0.7);
-      box-shadow:
-        0 1px 0 rgb(255 255 255 / 0.8) inset,
-        0 10px 30px -12px rgb(26 41 64 / 0.18);
-    }
-
-    /* Entrada escalonada de las tarjetas. */
-    .rise {
-      animation: subir 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-      animation-delay: var(--d, 0ms);
-    }
-    @keyframes subir {
-      from { opacity: 0; transform: translateY(14px); }
-    }
-
     /* Tarjeta del asistente: un borde de luz bronce que recorre el contorno. */
     .hero { position: relative; }
     .hero::before {
@@ -447,11 +398,7 @@ const stats = [
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .halo, .rise, .hero::before, .pulso::after, .mic-anillo { animation: none; }
-    }
-    /* Sin soporte de desenfoque, el vidrio pasa a ser casi opaco para no perder lectura. */
-    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      .glass { background: rgb(255 255 255 / 0.92); }
+      .hero::before, .pulso::after, .mic-anillo { animation: none; }
     }
   </style>
 

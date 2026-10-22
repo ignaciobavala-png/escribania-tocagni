@@ -517,6 +517,15 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
   viven en `src/data/expediente.ts`. **Las listas por servicio son un borrador
   mio, no criterio juridico: hay que validarlas con Ines** (la pantalla lo dice).
   Falta: entidad "cliente" (hoy un expediente = una ficha) y borrado de archivos.
+- **Nueva consulta asistida** (`/admin/nueva`): se cuenta el caso (voz, texto
+  o archivos) y `POST /api/admin/extraer` devuelve la ficha armada (nombre,
+  contacto, trámite, urgencia, resumen). Usa **Workers AI**
+  (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`, JSON schema), el mismo servicio
+  que el dictado: los datos del cliente no salen de Cloudflare. Si el modelo
+  falla cae a reglas (`src/lib/extraer.ts`). La salida se valida campo a campo y
+  nunca se guarda sola: la persona confirma. El prompt aclara que pedir un
+  "certificado" dentro de una compraventa no es el servicio 01 (el modelo lo
+  confundia). Estilo compartido del panel en `src/styles/panel.css`.
 - **Local**: el binding `EMAIL` se simula (no sale ningun mail; el contenido se
   guarda en `.wrangler/tmp/email`). `AI` siempre pega a Cloudflare (cobra poco).
   Typecheck: `pnpm --package=typescript@5 dlx tsc --noEmit` (el build de Astro
