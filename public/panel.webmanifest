@@ -1,0 +1,16 @@
+{
+  "name": "Panel Escribanía Tocagni",
+  "short_name": "Tocagni",
+  "description": "Entorno interno de la escribanía: consultas, turnos y vencimientos.",
+  "lang": "es-AR",
+  "start_url": "/admin",
+  "scope": "/admin/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a2940",
+  "theme_color": "#1a2940",
+  "icons": [
+    { "src": "/icons/panel.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/panel.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

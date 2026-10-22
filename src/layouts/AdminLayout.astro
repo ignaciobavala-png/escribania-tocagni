@@ -1,0 +1,75 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+const usuario = Astro.locals.usuario;
+const ruta = Astro.url.pathname.replace(/\/$/, '');
+const nav = [
+  { href: '/admin', texto: 'Resumen' },
+  { href: '/admin/nueva', texto: 'Nueva consulta' },
+  { href: '/admin/excel', texto: 'Excel' },
+];
+---
+
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a2940" />
+    {/* PWA: el manifiesto vive fuera de /admin para que Access no lo bloquee. */}
+    <link rel="manifest" href="/panel.webmanifest" crossorigin="use-credentials" />
+    <link rel="icon" href="/icons/panel.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/panel.svg" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Tocagni" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    {/* El panel es interno: fuera de buscadores. */}
+    <meta name="robots" content="noindex,nofollow" />
+    <title>{title} · Panel Tocagni</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-neutral-50 min-h-screen pb-28 md:pb-0">
+    <header class="bg-primary text-white border-b border-accent/40 pt-[env(safe-area-inset-top)]">
+      <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
+        <a href="/admin" class="font-serif text-xl tracking-tight">Escribanía Tocagni</a>
+        <nav class="hidden md:flex gap-8 text-base" aria-label="Principal">
+          {nav.map((n) => (
+            <a href={n.href} class={ruta === n.href ? 'text-accent-light' : 'text-white/70 hover:text-white'}>{n.texto}</a>
+          ))}
+        </nav>
+        <div class="flex items-center gap-4 text-base text-white/70">
+          {usuario && <span class="hidden md:inline">{usuario.email} · {usuario.rol}</span>}
+          {/* Cierra la sesión de Access; en local no hay Access y da 404. */}
+          <a href="/cdn-cgi/access/logout" class="py-2 hover:text-white">Salir</a>
+        </div>
+      </div>
+    </header>
+    <main class="max-w-6xl mx-auto px-5 py-8 md:py-10">
+      <slot />
+    </main>
+    {/* En el teléfono la navegación va abajo, al alcance del pulgar. */}
+    <nav
+      class="md:hidden fixed bottom-0 inset-x-0 bg-primary border-t border-accent/40 grid grid-cols-3 pb-[env(safe-area-inset-bottom)]"
+      aria-label="Principal"
+    >
+      {nav.map((n) => (
+        <a
+          href={n.href}
+          class={`py-4 text-center text-base font-medium ${ruta === n.href ? 'text-accent-light' : 'text-white/70'}`}
+        >{n.texto}</a>
+      ))}
+    </nav>
+    <script is:inline>
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('/admin/sw.js', { scope: '/admin/' }).catch(() => {});
+    </script>
+  </body>
+</html>

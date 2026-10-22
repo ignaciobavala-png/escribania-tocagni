@@ -469,6 +469,54 @@ Referencia: skill `ai-sdk-chatbot-grounded` en brain-data (adaptada de Groq a De
 - Rate limiting de Cloudflare sobre `/api/chat` (endpoint publico y pago).
 - Evaluar `session: false` para no provisionar el KV que el adapter crea solo.
 
+## Entorno interno (`/admin`)
+
+Rama `automatizacion`. Plan completo en `docs/plan-automatizacion.md`. El sitio
+publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
+`src/middleware.ts`.
+
+- **Datos**: D1 (binding `DB`), esquema en `migrations/`. Local:
+  `pnpm exec wrangler d1 migrations apply DB --local`.
+- **Login**: Cloudflare Access + tabla `usuarios` (rol `escribana`/`recepcion`).
+  El middleware valida el JWT (`src/lib/access.ts`) y falla cerrado si
+  `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` (vars de `wrangler.jsonc`) estan vacias.
+  En `astro dev` entra solo como `dev@local`.
+- **Mail**: binding `EMAIL` (Cloudflare Email Sending), siempre via
+  `src/lib/notificar.ts`. No hay API key.
+- **Auditoria**: `src/lib/auditoria.ts`, solo agregar.
+- **Consulta del chat -> ficha -> mail**: el modelo NO recibe datos personales.
+  Llama a la herramienta `ofrecer_registro` (en `api/chat.ts`; solo clasifica:
+  servicio, urgencia, resumen) y el widget dibuja `FormularioConsulta.tsx`, que
+  pide nombre y contacto y los manda directo a `/api/consulta` (publico: campo
+  trampa, tope de 15 fichas/hora, validacion). Ese endpoint crea la ficha
+  (`origen='chat'`), audita y avisa al estudio por mail. Si el mail falla, la
+  ficha queda igual (`aviso_fallido` en auditoria).
+- **PWA**: `public/panel.webmanifest` (fuera de `/admin` a proposito, para que
+  Access no lo bloquee), `public/admin/sw.js` (solo pantalla offline; NO cachea
+  datos de clientes). Dictado: `/api/admin/dictar` (Whisper en Workers AI, sin
+  `initial_prompt`: con audio sin voz devolvia el prompt como si se hubiera dicho).
+- **Excel** (`/admin/excel`): todo en el navegador (`read-excel-file/web-worker`,
+  `write-excel-file/universal`; las variantes sin Web Workers a proposito).
+  `src/lib/importar.ts` es la logica pura, compartida entre la vista previa
+  (cliente) y `api/admin/importar.ts` (servidor, que revalida todo): reconoce
+  columnas por sinonimos, parsea fechas (dd/mm/aaaa, serie de Excel, Date) y
+  omite duplicados (mismo nombre+contacto+detalle, sin distinguir tildes ni
+  mayusculas). **Las fechas se leen con `getUTC*`**: la libreria devuelve
+  medianoche UTC y con la hora local de Argentina (UTC-3) el 25 pasa a ser 24.
+  Tope de 500 filas y 5 MB. Exportar y volver a importar no pierde datos.
+- **Local**: el binding `EMAIL` se simula (no sale ningun mail; el contenido se
+  guarda en `.wrangler/tmp/email`). `AI` siempre pega a Cloudflare (cobra poco).
+  Typecheck: `pnpm --package=typescript@5 dlx tsc --noEmit` (el build de Astro
+  no chequea tipos).
+- **Recursos en Cloudflare** (cuenta Neo Nach, `CLOUDFLARE_ACCOUNT_ID=0b9fa37f...`;
+  hay tres cuentas, wrangler necesita ese env): D1 `escribania-tocagni` creada y
+  migrada el 2026-10-22; Email Sending habilitado para `escribaniatocagni.com`.
+  Usuarios cargados en remoto: desarrollador (Ignacio) y recepcion
+  (`administracion@`); **falta el de Ines**.
+- **Pendiente antes de deployar**: crear la app de Access (paths `/admin*` y
+  `/api/admin*`) y cargar `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` en `wrangler.jsonc`;
+  sin eso `/admin` queda cerrado en produccion (a proposito).
+
 ## Desarrollo
 
 ```bash
