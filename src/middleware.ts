@@ -26,7 +26,7 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   // Autenticado por Access no alcanza: además tiene que estar en `usuarios`.
   let fila = await env.DB.prepare('SELECT rol FROM usuarios WHERE email = ?')
     .bind(email)
-    .first<{ rol: 'escribana' | 'recepcion' }>();
+    .first<{ rol: Rol }>();
   if (!fila && import.meta.env.DEV) fila = { rol: 'escribana' };
   if (!fila) {
     await auditar(env.DB, email, 'acceso_denegado', { detalle: { ruta: ctx.url.pathname } });

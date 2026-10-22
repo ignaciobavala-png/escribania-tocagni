@@ -1,0 +1,104 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+
+export const prerender = false;
+---
+
+<AdminLayout title="Nueva consulta">
+  <h1 class="font-serif text-3xl md:text-4xl text-primary tracking-tight">Nueva consulta</h1>
+  <div class="w-16 h-px bg-accent mt-4 mb-8"></div>
+
+  <form id="form" class="max-w-xl space-y-5">
+    <label class="block">
+      <span class="text-base uppercase tracking-[0.2em] text-neutral-500">Nombre</span>
+      <input name="nombre" autocomplete="off" class="mt-2 w-full border border-neutral-300 bg-white px-4 py-3 text-lg" />
+    </label>
+    <label class="block">
+      <span class="text-base uppercase tracking-[0.2em] text-neutral-500">Teléfono o mail</span>
+      <input name="contacto" autocomplete="off" class="mt-2 w-full border border-neutral-300 bg-white px-4 py-3 text-lg" />
+    </label>
+    <label class="block">
+      <span class="text-base uppercase tracking-[0.2em] text-neutral-500">Detalle</span>
+      <textarea name="resumen" rows="6" class="mt-2 w-full border border-neutral-300 bg-white px-4 py-3 text-lg"></textarea>
+    </label>
+
+    <div class="flex flex-col sm:flex-row gap-3">
+      <button
+        type="button"
+        id="mic"
+        class="flex-1 bg-white border border-primary text-primary py-4 text-lg font-medium"
+      >● Dictar</button>
+      <button type="submit" class="flex-1 bg-primary text-white py-4 text-lg font-medium">Guardar</button>
+    </div>
+    <p id="estado" role="status" class="text-lg text-neutral-600 min-h-7"></p>
+  </form>
+</AdminLayout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#form')!;
+  const mic = document.querySelector<HTMLButtonElement>('#mic')!;
+  const estado = document.querySelector<HTMLElement>('#estado')!;
+  const detalle = form.elements.namedItem('resumen') as HTMLTextAreaElement;
+
+  let grabador: MediaRecorder | null = null;
+  let trozos: Blob[] = [];
+
+  mic.addEventListener('click', async () => {
+    // Segundo toque: corta y manda a transcribir.
+    if (grabador && grabador.state === 'recording') {
+      grabador.stop();
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      estado.textContent = 'Este navegador no permite grabar audio.';
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      trozos = [];
+      grabador = new MediaRecorder(stream);
+      grabador.ondataavailable = (e) => e.data.size && trozos.push(e.data);
+      grabador.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        mic.textContent = '● Dictar';
+        mic.disabled = true;
+        estado.textContent = 'Transcribiendo…';
+        try {
+          const res = await fetch('/api/admin/dictar', {
+            method: 'POST',
+            body: new Blob(trozos, { type: grabador!.mimeType || 'audio/webm' }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          detalle.value = [detalle.value.trim(), data.texto].filter(Boolean).join(' ');
+          estado.textContent = 'Listo. Revisá el texto antes de guardar.';
+        } catch (e) {
+          estado.textContent = e instanceof Error && e.message ? e.message : 'No se pudo transcribir.';
+        } finally {
+          mic.disabled = false;
+        }
+      };
+      grabador.start();
+      mic.textContent = '■ Detener';
+      estado.textContent = 'Grabando… tocá de nuevo para terminar.';
+    } catch {
+      estado.textContent = 'No hay permiso para usar el micrófono.';
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const datos = Object.fromEntries(new FormData(form));
+    estado.textContent = 'Guardando…';
+    const res = await fetch('/api/admin/fichas', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(datos),
+    });
+    if (res.ok) {
+      location.href = '/admin';
+    } else {
+      estado.textContent = (await res.json().catch(() => ({}))).error ?? 'No se pudo guardar.';
+    }
+  });
+</script>

@@ -16,16 +16,17 @@
   ],
   // El bloque `assets` ya no vive aca: con el adapter v14 lo genera el build
   // a partir del output de Astro (ver dist/server/wrangler.json).
-  // Entorno interno (/admin). El database_id se completa al crear la base
-  // (`wrangler d1 create escribania-tocagni`); hasta entonces solo sirve en local.
+  // Entorno interno (/admin). Base creada el 2026-10-22 en la cuenta Neo Nach.
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "escribania-tocagni",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "a5f8b91b-a2bd-4bc6-beac-972000c27330",
       "migrations_dir": "migrations"
     }
   ],
+  // Transcripción de voz (Whisper) para el dictado del panel.
+  "ai": { "binding": "AI" },
   // Salida de mails (src/lib/notificar.ts). Reemplaza a una API key externa.
   "send_email": [{ "name": "EMAIL" }],
   // Cloudflare Access protege /admin: el middleware valida el JWT contra estos

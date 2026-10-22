@@ -7,7 +7,7 @@
 CREATE TABLE usuarios (
   email  TEXT PRIMARY KEY,
   nombre TEXT,
-  rol    TEXT NOT NULL CHECK (rol IN ('escribana', 'recepcion')),
+  rol    TEXT NOT NULL CHECK (rol IN ('escribana', 'recepcion', 'desarrollador')),
   creado TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
