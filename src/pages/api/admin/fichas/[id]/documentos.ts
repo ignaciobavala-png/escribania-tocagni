@@ -12,6 +12,13 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   const usuario = locals.usuario;
   if (!usuario) return new Response('No autorizado', { status: 401 });
 
+  // Se corta por el tamaño declarado ANTES de leer el cuerpo: `formData()` carga
+  // el archivo entero en memoria, y un envío enorme no debe llegar a eso.
+  // (Margen de 1 MB por los encabezados del multipart.)
+  if (Number(request.headers.get('content-length')) > MAX_BYTES + 1024 * 1024) {
+    return Response.json({ error: 'El archivo supera los 10 MB.' }, { status: 413 });
+  }
+
   const ficha = await env.DB.prepare('SELECT 1 FROM fichas WHERE id = ?').bind(params.id).first();
   if (!ficha) return Response.json({ error: 'No existe la consulta.' }, { status: 404 });
 
