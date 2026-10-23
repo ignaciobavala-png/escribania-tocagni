@@ -59,6 +59,28 @@ async function abiertas(db: D1Database): Promise<string> {
     .join('\n');
 }
 
+// Un expediente es la carpeta de documentos de una consulta: hay uno por ficha.
+async function expedientes(db: D1Database): Promise<string> {
+  const { results } = await db
+    .prepare(
+      `SELECT f.id, f.nombre, f.servicio, f.estado,
+              (SELECT count(*) FROM documentos d WHERE d.ficha_id = f.id) AS docs,
+              (SELECT group_concat(DISTINCT coalesce(d.categoria, 'otros')) FROM documentos d WHERE d.ficha_id = f.id) AS cats
+       FROM fichas f WHERE f.estado != 'cerrada' ORDER BY docs DESC, f.creada DESC LIMIT 40`,
+    )
+    .all<{ id: string; nombre: string | null; servicio: string | null; estado: keyof typeof ESTADOS; docs: number; cats: string | null }>();
+  if (!results.length) return 'No hay expedientes.';
+  return results
+    .map((f) => {
+      const presentes = new Set((f.cats ?? '').split(',').filter(Boolean));
+      const pedidos = (f.servicio && REQUERIDOS[f.servicio]) || [];
+      const faltan = pedidos.filter((k) => !presentes.has(k)).map((k) => categoriaPorClave(k).titulo);
+      const estadoDocs = pedidos.length ? (faltan.length ? `faltan: ${faltan.join(', ')}` : 'completo') : 'sin lista sugerida (trámite sin definir)';
+      return `- /admin/expedientes/${f.id} (id ${f.id}) · ${linea(f.nombre ?? 'Sin nombre', nombreServicio(f.servicio), `${f.docs} ${f.docs === 1 ? 'documento' : 'documentos'}`, estadoDocs)}`;
+    })
+    .join('\n');
+}
+
 async function venc(db: D1Database, dias: number): Promise<string> {
   const { results } = await db
     .prepare(
@@ -126,6 +148,9 @@ export async function contextoPara(db: D1Database, ruta: string): Promise<Contex
     case 'ficha':
     case 'expediente':
       datos = `Consulta que está mirando:\n${await detalleFicha(db, id!)}`;
+      break;
+    case 'expedientes':
+      datos = `Expedientes (uno por consulta abierta; el expediente es su carpeta de documentos):\n${await expedientes(db)}`;
       break;
     case 'turnos':
       datos = `Turnos de los próximos 14 días:\n${await turnos(db, 14)}`;

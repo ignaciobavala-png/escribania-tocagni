@@ -242,14 +242,18 @@ const iaMarca = 'ia hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs font-me
     pensando.classList.replace('hidden', 'inline-flex');
     estado.textContent = '';
     try {
-      const res = await fetch('/api/admin/extraer', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texto }) });
+      // Tope propio: si el asistente no contesta, no queda "Entendiendo…" para siempre.
+      const res = await fetch('/api/admin/extraer', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texto }), signal: AbortSignal.timeout(30_000) });
       if (!res.ok) throw new Error();
       const d = (await res.json()) as Datos;
       if (mio !== pedido) return; // llegó una respuesta más nueva
       aplicar(d);
       estado.textContent = d.via === 'ia' ? (d.respuesta ? '' : '✦ Listo, revisá la ficha') : 'Completé lo básico (el asistente no respondió, así que tampoco puedo contestar preguntas ahora)';
     } catch {
-      if (mio === pedido) estado.textContent = 'No pude interpretar el texto. Completá la ficha a mano.';
+      if (mio === pedido) {
+        ultimo = ''; // permite reintentar con el mismo texto
+        estado.textContent = 'El asistente no respondió a tiempo. Tocá fuera del cuadro para reintentar o completá la ficha a mano.';
+      }
     } finally {
       if (mio === pedido) {
         delete ficha.dataset.pensando;

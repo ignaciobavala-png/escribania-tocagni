@@ -572,6 +572,14 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
     la busca en lo que la persona escribio (`dichos`) y si no esta descarta la
     propuesta. Antes el asistente preguntaba "¿que fecha?" y a la vez proponia un
     turno inventado (visto en produccion el 2026-10-23).
+  - **Una pregunta no mueve nada** (2026-10-23): ante "¿que expedientes hay?" Llama
+    proponia notas que nadie pidio. El prompt solo no alcanzo, asi que
+    `asistente-accion.ts` exige que lo ultimo que escribio la persona tenga un verbo
+    de pedido (`PEDIDO`, solo imperativos/infinitivos: "cargados" no cuenta) o una
+    confirmacion corta ("dale"). Si se agregan verbos nuevos, sumarlos ahi.
+  - **Vocabulario**: expediente = carpeta de documentos de una consulta (uno por
+    ficha). `contexto-asistente.ts` arma la lista para `/admin/expedientes`; antes el
+    asistente decia "no tengo acceso" porque esa pantalla caia al contexto generico.
   - **Voz**: el cajon tiene microfono (graba, `/api/admin/dictar`, y envia solo).
   - En **Nueva consulta** el mismo `extraer.ts` ademas contesta preguntas
     (`respuesta`) con servicios, FAQ y la lista de documentos de `expediente.ts`.
