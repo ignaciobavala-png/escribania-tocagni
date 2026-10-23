@@ -46,6 +46,15 @@ const ofrecerRegistro = tool({
 });
 
 export const POST: APIRoute = async ({ request }) => {
+  // Freno por IP antes de gastar un solo token. En local el binding no existe y se saltea.
+  if (env.LIMITE_CHAT) {
+    const ip = request.headers.get('cf-connecting-ip') ?? 'sin-ip';
+    const { success } = await env.LIMITE_CHAT.limit({ key: ip });
+    if (!success) {
+      return Response.json({ error: 'Estás escribiendo muy rápido. Probá de nuevo en un minuto.' }, { status: 429 });
+    }
+  }
+
   const apiKey = env.DEEPSEEK_API_KEY;
   // Si falta la key, se corta aca: sin esto la request "funcionaria" pero el
   // asistente quedaria mudo sin decir por que.

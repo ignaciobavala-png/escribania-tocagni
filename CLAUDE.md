@@ -466,7 +466,7 @@ Referencia: skill `ai-sdk-chatbot-grounded` en brain-data (adaptada de Groq a De
 
 ### Pendiente
 
-- Rate limiting de Cloudflare sobre `/api/chat` (endpoint publico y pago).
+- ~~Rate limiting sobre `/api/chat`~~: hecho el 2026-10-23 con el binding `LIMITE_CHAT` (15 mensajes por minuto por IP, `wrangler.jsonc`). Falta verificarlo en produccion despues del deploy.
 - Evaluar `session: false` para no provisionar el KV que el adapter crea solo.
 
 ## Entorno interno (`/admin`)
@@ -540,10 +540,48 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
   hay tres cuentas, wrangler necesita ese env): D1 `escribania-tocagni` creada y
   migrada el 2026-10-22; Email Sending habilitado para `escribaniatocagni.com`.
   Usuarios cargados en remoto: desarrollador (Ignacio) y recepcion
-  (`administracion@`); **falta el de Ines**.
-- **Pendiente antes de deployar**: crear la app de Access (paths `/admin*` y
-  `/api/admin*`) y cargar `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` en `wrangler.jsonc`;
-  sin eso `/admin` queda cerrado en produccion (a proposito).
+  (`administracion@`) e Ines (`escribana`, desde el 2026-10-23).
+- **Access: hecho.** App `escribaniatocagni.com` con los destinos `/admin*` y
+  `/api/admin*` (apex y `www`) y la politica "estudio" (Allow por mail:
+  Ignacio, `administracion@`, y `ines.tocagni@gmail.com`, el 2026-10-23). Login con
+  One-time PIN. `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` ya estan en `wrangler.jsonc`.
+  **Alta de un usuario nuevo = dos pasos**: agregar el mail a la politica de Access
+  y una fila en `usuarios` (D1 remota); con solo uno de los dos no entra.
+  Inés esta cargada en `usuarios` con rol `escribana`.
+- **Asistente del panel** (`components/Asistente.astro`, montado en `AdminLayout`):
+  cajon de chat en todas las pantallas (boton flotante, Ctrl K), con streaming.
+  `api/admin/asistente.ts` arma el prompt con los datos de la pantalla que lee
+  `lib/contexto-asistente.ts` (ficha, vencimientos, turnos; el navegador manda solo
+  la ruta). Usa **Workers AI**, no DeepSeek: los datos de clientes no salen de
+  Cloudflare, y el chat publico (DeepSeek) nunca los recibe.
+  - **Puede actuar, pero nunca solo.** El modelo cierra con lineas
+    `ACCION: {json}`; el cliente las convierte en tarjetas "Confirmar/Descartar".
+    `api/admin/asistente-accion.ts` valida (`lib/acciones.ts`) en dos pasos: `prever`
+    describe sin tocar nada y, al confirmar, `ejecutar` vuelve a validar. Un dato de
+    cliente con instrucciones escondidas no mueve nada sin un clic. Acciones: crear
+    consulta, estado, urgencia, tramite, nota, crear/resolver vencimiento,
+    crear/cancelar turno. **No hay borrado, a proposito.** Cada accion queda en
+    auditoria con `via: asistente`.
+  - Si se agrega un tipo de accion hay que tocar tres lugares: el tipo y `validar`/
+    `prever`/`ejecutar` en `lib/acciones.ts` y la lista del prompt en `asistente.ts`.
+  - El modelo a veces escribe mal el JSON (`"ficha_id:abc"`); el cliente repara solo
+    ese caso (claves `*_id`). Si no se puede, la tarjeta no aparece.
+  - En **Nueva consulta** el mismo `extraer.ts` ademas contesta preguntas
+    (`respuesta`) con servicios, FAQ y la lista de documentos de `expediente.ts`.
+  - Las listas de documentos por trámite siguen siendo un **borrador sin validar con
+    Ines**, y ahora el asistente las repite (siempre como "orientativas").
+- **Telefono**: revisado a 390 px con un Chrome simulado (playwright-core contra
+  `astro dev`). Barra inferior de 6 items con etiquetas cortas ("Nueva"), botones
+  de al menos 44 px, boton del asistente circular en movil. **No se probo en un
+  telefono real** (teclado, notch, microfono).
+- **Backups**: D1 tiene Time Travel (restauracion a un punto de los ultimos 30
+  dias: `wrangler d1 time-travel restore`). R2 **no** tiene versionado ni copia:
+  un archivo subido solo vive ahi.
+- **Mail**: sale por Cloudflare Email Sending (`avisos@escribaniatocagni.com`), no
+  por Resend. El DNS esta en Cloudflare aunque el registro del dominio sea otro.
+- **Pendiente antes de presentarlo**: deploy y prueba en produccion, prueba del
+  login de Ines, mail real del aviso de consulta, listas de documentos validadas
+  por Ines, prueba en telefono real. El proyecto **no tiene tests automaticos**.
 
 ## Desarrollo
 
