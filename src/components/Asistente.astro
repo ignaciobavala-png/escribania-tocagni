@@ -57,7 +57,7 @@ const seccion = rotuloDe(ruta);
         id="as-texto"
         rows="1"
         maxlength="2000"
-        placeholder="Preguntame lo que necesites…"
+        placeholder="Escribí o hablá…"
         class="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-neutral-300 bg-white px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-accent/50"
       ></textarea>
       <button type="submit" id="as-enviar" class="h-11 rounded-2xl bg-primary px-4 text-base font-semibold text-white transition hover:bg-primary-light disabled:opacity-40">Enviar</button>
@@ -79,6 +79,8 @@ const seccion = rotuloDe(ruta);
 </div>
 
 <script>
+  import { leerPropuestas, textoVisible } from '../lib/propuestas';
+
   interface Msg { role: 'user' | 'assistant'; content: string }
 
   const raiz = document.getElementById('asistente')!;
@@ -101,13 +103,24 @@ const seccion = rotuloDe(ruta);
   try { historial = JSON.parse(sessionStorage.getItem(CLAVE) ?? '[]'); } catch { /* sin almacenamiento */ }
   const guardar = () => { try { sessionStorage.setItem(CLAVE, JSON.stringify(historial.slice(-20))); } catch { /* ídem */ } };
 
-  // Rutas de consultas en la respuesta -> enlaces; el resto, texto plano (nada de HTML del modelo).
+  // Texto con **negrita** (lo único de markdown que se interpreta): se arman nodos, nunca HTML del modelo.
+  function conNegrita(t: string): Node[] {
+    return t.split(/\*\*(.+?)\*\*/g).map((parte, i) => {
+      if (i % 2 === 0) return document.createTextNode(parte);
+      const b = document.createElement('strong');
+      b.className = 'font-semibold';
+      b.textContent = parte;
+      return b;
+    });
+  }
+
+  // Rutas de consultas en la respuesta -> enlaces; el resto, texto plano.
   function pintarTexto(el: HTMLElement, t: string) {
     el.replaceChildren();
     const re = /\/admin\/(?:fichas|expedientes)\/[\w-]+/g;
     let i = 0;
     for (const m of t.matchAll(re)) {
-      el.append(t.slice(i, m.index));
+      el.append(...conNegrita(t.slice(i, m.index)));
       const a = document.createElement('a');
       a.href = m[0];
       a.textContent = m[0].includes('expedientes') ? 'abrir expediente →' : 'abrir consulta →';
@@ -115,40 +128,26 @@ const seccion = rotuloDe(ruta);
       el.append(a);
       i = m.index! + m[0].length;
     }
-    el.append(t.slice(i));
+    el.append(...conNegrita(t.slice(i)));
   }
 
-  // El modelo cierra con líneas `ACCION: {json}`: no se muestran, se vuelven tarjetas para confirmar.
-  const MARCA = 'ACCION:';
-  const visible = (t: string) => { const i = t.indexOf(MARCA); return (i < 0 ? t : t.slice(0, i)).trimEnd(); };
-  function acciones(t: string): unknown[] {
-    const out: unknown[] = [];
-    for (const l of t.split('\n')) {
-      const i = l.indexOf(MARCA);
-      if (i < 0) continue;
-      const crudo = l.slice(i + MARCA.length).trim();
-      // Formato `clave=valor; clave=valor`. Si el modelo mandó JSON igual, también se acepta.
-      if (crudo.startsWith('{')) { try { out.push(JSON.parse(crudo)); } catch { /* mal formado: se ignora */ } continue; }
-      const campos: Record<string, string | null> = {};
-      for (const par of crudo.split(';')) {
-        const k = par.indexOf('=');
-        if (k < 1) continue;
-        const v = par.slice(k + 1).trim().replace(/^["']|["']$/g, '');
-        campos[par.slice(0, k).trim()] = v === '' || v === 'null' ? null : v;
-      }
-      if (campos.tipo) out.push(campos);
-    }
-    return out.slice(0, 3);
-  }
+  // El modelo cierra con líneas `ACCION: ...`: no se muestran, se vuelven tarjetas para confirmar.
+  const visible = textoVisible;
+  const acciones = leerPropuestas;
 
   // Al terminar una acción se recarga la pantalla para que muestre el cambio;
   // el cajón se vuelve a abrir solo. En pantallas donde hay algo a medio escribir no se recarga.
   const SIN_RECARGA = ['/admin/nueva', '/admin/excel'];
   const nota = (texto: string) => {
     const ultimo = historial[historial.length - 1];
-    if (ultimo?.role === 'assistant') ultimo.content += `\n(${texto})`;
+    if (ultimo?.role === 'assistant') ultimo.content += `\n\n${texto}`;
     guardar();
   };
+
+  // Con la sesión de Access vencida (24 h) el fetch termina en una redirección a otro
+  // dominio y el navegador lo informa como error de red, en inglés. Se traduce a algo útil.
+  const errorDeRed = (e: unknown) =>
+    e instanceof TypeError ? 'Se cortó la conexión o venció la sesión. Recargá la página para volver a entrar.' : null;
 
   async function pedirAccion(accion: unknown, ejecutar: boolean) {
     const res = await fetch('/api/admin/asistente-accion', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accion, ejecutar, dichos: historial.filter((m) => m.role === 'user').slice(-4).map((m) => m.content) }) });
@@ -182,7 +181,7 @@ const seccion = rotuloDe(ruta);
     lista.append(caja);
     lista.scrollTop = lista.scrollHeight;
 
-    no.addEventListener('click', () => { caja.remove(); nota(`Descartaste: ${prev.descripcion}`); });
+    no.addEventListener('click', () => { caja.remove(); nota(`✗ Descartado: ${prev.descripcion}`); });
     si.addEventListener('click', async () => {
       si.disabled = no.disabled = true;
       aviso.textContent = 'Haciéndolo…';
@@ -197,10 +196,10 @@ const seccion = rotuloDe(ruta);
           try { sessionStorage.setItem('as-abierto', '1'); } catch { /* sin almacenamiento */ }
           setTimeout(() => location.reload(), 900);
         }
-        nota(`Confirmaste y se hizo: ${prev.descripcion}`);
+        nota(`✓ Hecho: ${prev.descripcion}`);
       } catch (e) {
         si.disabled = no.disabled = false;
-        aviso.textContent = e instanceof Error ? e.message : 'No se pudo.';
+        aviso.textContent = errorDeRed(e) ?? (e instanceof Error ? e.message : 'No se pudo.');
         aviso.className = 'text-base text-red-700';
       }
     });
@@ -233,7 +232,7 @@ const seccion = rotuloDe(ruta);
       return b;
     }));
     if (!historial.length) saludo();
-    for (const m of historial) burbuja(m.role, m.content);
+    for (const m of historial) burbuja(m.role, m.role === 'assistant' ? visible(m.content) : m.content);
   }
 
   let ocupado = false;
@@ -267,13 +266,15 @@ const seccion = rotuloDe(ruta);
         lista.scrollTop = lista.scrollHeight;
       }
       if (!acumulado.trim()) throw new Error();
-      const limpio = visible(acumulado);
-      historial.push({ role: 'assistant', content: limpio || acumulado });
-      if (!limpio) el.remove();
+      // Si la respuesta fue solo la acción, queda un texto propio: guardar `acumulado`
+      // mostraría las líneas ACCION crudas al volver a abrir el cajón.
+      const limpio = visible(acumulado) || 'Te dejo la acción para que la confirmes.';
+      historial.push({ role: 'assistant', content: limpio });
+      pintarTexto(el, limpio);
       for (const a of acciones(acumulado)) await tarjeta(a);
     } catch (e) {
       historial.pop(); // la pregunta sin respuesta no queda en el historial
-      el.textContent = e instanceof Error && e.message ? e.message : 'No pude responder ahora. Probá de nuevo en un momento.';
+      el.textContent = errorDeRed(e) ?? (e instanceof Error && e.message ? e.message : 'No pude responder ahora. Probá de nuevo en un momento.');
       el.classList.add('text-red-700');
     } finally {
       el.classList.remove('as-cursor');
@@ -305,7 +306,7 @@ const seccion = rotuloDe(ruta);
         clearTimeout(corte);
         stream.getTracks().forEach((t) => t.stop());
         mic.setAttribute('aria-pressed', 'false');
-        texto.placeholder = 'Preguntame lo que necesites…';
+        texto.placeholder = 'Escribí o hablá…';
         navigator.vibrate?.(30);
         mic.disabled = true;
         texto.placeholder = 'Transcribiendo…';
@@ -319,7 +320,7 @@ const seccion = rotuloDe(ruta);
           texto.placeholder = e instanceof Error && e.message ? e.message : 'No se pudo transcribir.';
         } finally {
           mic.disabled = false;
-          if (texto.placeholder === 'Transcribiendo…') texto.placeholder = 'Preguntame lo que necesites…';
+          if (texto.placeholder === 'Transcribiendo…') texto.placeholder = 'Escribí o hablá…';
         }
       };
       rec.start();

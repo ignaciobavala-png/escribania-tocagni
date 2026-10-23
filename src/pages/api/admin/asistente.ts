@@ -4,6 +4,7 @@ import { bloqueFaqs, bloqueServicios } from '../../../data/agente';
 import { contextoPara } from '../../../lib/contexto-asistente';
 import { catalogoDocumentos } from '../../../lib/extraer';
 import { hoyAR } from '../../../lib/fechas';
+import { modeloPara, opcionesDe, textoDe } from '../../../lib/modelo';
 
 export const prerender = false;
 
@@ -14,7 +15,7 @@ const sistema = (rol: string, seccion: string, datos: string) => `Sos el Asisten
 Hoy es ${new Intl.DateTimeFormat('es-AR', { weekday: 'long', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())} ${hoyAR()}. La persona está en la pantalla: ${seccion}.
 
 Reglas:
-- Hablá en español rioplatense (voseo), breve y concreto. Frases cortas; listas con guiones si son varios ítems.
+- Hablá en español rioplatense (voseo), breve y concreto. Frases cortas; listas con guiones si son varios ítems. Sin títulos ni tablas: el único formato que se ve es **negrita**.
 - Usá SOLO los datos de abajo. No inventes nombres, fechas, plazos ni requisitos. Si el dato pedido está en [DATOS DE ESTA PANTALLA], respondelo con nombres concretos; no mandes a "consultar con la escribana" lo que podés leer ahí. Solo si de verdad no está, decí qué pantalla lo tendría (por ejemplo Consultas, Expedientes, Turnos o Vencimientos).
 - Vocabulario del panel: una CONSULTA (o ficha) es el caso de una persona. Su EXPEDIENTE es la carpeta de documentos de esa misma consulta: hay uno por consulta. Preguntar por "los expedientes" es preguntar por esas carpetas y cuántos documentos tienen.
 - Podés ACTUAR en el panel, pero nunca solo: proponés la acción y la persona la confirma con un botón. No digas que ya lo hiciste; decí que lo dejás listo para confirmar.
@@ -72,18 +73,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const ctx = await contextoPara(env.DB, ruta);
   let flujo: ReadableStream<Uint8Array>;
   try {
-    flujo = (await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+    const modelo = modeloPara(request);
+    flujo = (await env.AI.run(modelo as Parameters<typeof env.AI.run>[0], {
       messages: [{ role: 'system', content: sistema(locals.usuario?.rol ?? 'recepcion', ctx.seccion, ctx.datos) }, ...mensajes],
       stream: true,
       max_tokens: 800,
       temperature: 0.1,
-    })) as unknown as ReadableStream<Uint8Array>;
+      ...opcionesDe(modelo),
+    } as never)) as unknown as ReadableStream<Uint8Array>;
   } catch (e) {
     console.error('[asistente] falló el modelo:', e);
     return Response.json({ error: 'El asistente no está disponible ahora.' }, { status: 502 });
   }
 
-  // Workers AI devuelve SSE (`data: {"response":"..."}`); al navegador le mandamos texto plano.
+  // Workers AI devuelve SSE (`data: {...}`); al navegador le mandamos texto plano.
   const dec = new TextDecoder();
   const enc = new TextEncoder();
   let resto = '';
@@ -95,7 +98,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       for (const l of lineas) {
         if (!l.startsWith('data: ') || l.includes('[DONE]')) continue;
         try {
-          const t = (JSON.parse(l.slice(6)) as { response?: string }).response;
+          const t = textoDe(JSON.parse(l.slice(6)));
           if (t) salida.enqueue(enc.encode(t));
         } catch { /* línea cortada: se descarta */ }
       }

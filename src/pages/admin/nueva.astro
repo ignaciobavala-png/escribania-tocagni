@@ -249,10 +249,12 @@ const iaMarca = 'ia hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs font-me
       if (mio !== pedido) return; // llegó una respuesta más nueva
       aplicar(d);
       estado.textContent = d.via === 'ia' ? (d.respuesta ? '' : '✦ Listo, revisá la ficha') : 'Completé lo básico (el asistente no respondió, así que tampoco puedo contestar preguntas ahora)';
-    } catch {
+    } catch (e) {
       if (mio === pedido) {
         ultimo = ''; // permite reintentar con el mismo texto
-        estado.textContent = 'El asistente no respondió a tiempo. Tocá fuera del cuadro para reintentar o completá la ficha a mano.';
+        estado.textContent = e instanceof DOMException && e.name === 'TimeoutError'
+          ? 'El asistente no respondió a tiempo. Tocá fuera del cuadro para reintentar o completá la ficha a mano.'
+          : 'No pude conectarme (¿venció la sesión?). Recargá la página o completá la ficha a mano.';
       }
     } finally {
       if (mio === pedido) {

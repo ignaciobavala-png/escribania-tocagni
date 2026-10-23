@@ -552,8 +552,19 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
   cajon de chat en todas las pantallas (boton flotante, Ctrl K), con streaming.
   `api/admin/asistente.ts` arma el prompt con los datos de la pantalla que lee
   `lib/contexto-asistente.ts` (ficha, vencimientos, turnos; el navegador manda solo
-  la ruta). Usa **Workers AI**, no DeepSeek: los datos de clientes no salen de
-  Cloudflare, y el chat publico (DeepSeek) nunca los recibe.
+  la ruta). Usa **Workers AI**: los datos de clientes no salen de Cloudflare. El chat
+  publico usa la API de DeepSeek (la key `DEEPSEEK_API_KEY`) y nunca recibe datos de
+  clientes; **no usar esa key en el panel**: mandaria datos personales a servidores de
+  DeepSeek en China (Ley 25.326, transferencia internacional).
+  - **Modelo: DeepSeek V4.1 Flash en Workers AI** (`src/lib/modelo.ts`, unico lugar
+    donde se elige; lo usan el asistente y Nueva consulta). Elegido el 2026-10-23 con
+    `scripts/comparar-modelos.mjs`: 5/5 acciones bien armadas y 0 de mas, contra Llama
+    3.3 (el anterior) que propuso 9 acciones que nadie pidio, invento ids y fechas.
+    Kimi K2.6 y GLM 5.3 andan bien pero tardan 15-25 s. En Nueva consulta paso de ~8 s
+    a 1.5-3 s. Los modelos nuevos responden con formato OpenAI (`choices`): `textoDe`
+    entiende los dos. El "razonamiento" va apagado (`opcionesDe`) por latencia.
+  - Cada pantalla suma un **directorio de consultas abiertas** (id y nombre), para que
+    "agendale un turno a Carlos" funcione desde Turnos o Vencimientos.
   - **Puede actuar, pero nunca solo.** El modelo cierra con lineas
     `ACCION: {json}`; el cliente las convierte en tarjetas "Confirmar/Descartar".
     `api/admin/asistente-accion.ts` valida (`lib/acciones.ts`) en dos pasos: `prever`
@@ -572,11 +583,12 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
     la busca en lo que la persona escribio (`dichos`) y si no esta descarta la
     propuesta. Antes el asistente preguntaba "¿que fecha?" y a la vez proponia un
     turno inventado (visto en produccion el 2026-10-23).
-  - **Una pregunta no mueve nada** (2026-10-23): ante "¿que expedientes hay?" Llama
-    proponia notas que nadie pidio. El prompt solo no alcanzo, asi que
-    `asistente-accion.ts` exige que lo ultimo que escribio la persona tenga un verbo
-    de pedido (`PEDIDO`, solo imperativos/infinitivos: "cargados" no cuenta) o una
-    confirmacion corta ("dale"). Si se agregan verbos nuevos, sumarlos ahi.
+  - **Frenos que no dependen del modelo** (`src/lib/propuestas.ts`, con pruebas): lo
+    ultimo que escribio la persona tiene que pedir *ese tipo* de accion ("agregá una
+    nota" no habilita un cambio de estado; reconoce "pasala", "agendale"; "cargados"
+    no cuenta) o ser una confirmacion corta ("dale"). Una pregunta no mueve nada. Se
+    aplican solo al proponer: al confirmar, el clic es el pedido. Si se agregan verbos
+    o tipos de accion, sumarlos en `VERBOS`.
   - **Vocabulario**: expediente = carpeta de documentos de una consulta (uno por
     ficha). `contexto-asistente.ts` arma la lista para `/admin/expedientes`; antes el
     asistente decia "no tengo acceso" porque esa pantalla caia al contexto generico.
@@ -594,6 +606,19 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
   un archivo subido solo vive ahi.
 - **Mail**: sale por Cloudflare Email Sending (`avisos@escribaniatocagni.com`), no
   por Resend. El DNS esta en Cloudflare aunque el registro del dominio sea otro.
+- **Pruebas** (`pnpm test`, vitest): frenos y lector de propuestas, `validar` de
+  cada accion, importacion de Excel, y que toda ruta de `src/pages/api` y
+  `src/pages/admin` tenga `prerender = false`. Esa ultima existe porque el 2026-10-23
+  una edicion lo borro de `asistente-accion.ts`: en `astro dev` andaba, pero el build
+  la generaba como archivo estatico y en produccion las tarjetas no habrian funcionado.
+  **Correr `pnpm test` antes de cada deploy.**
+- **Fechas**: validar siempre con `esFechaISO` (`lib/fechas.ts`). `Date.parse('2026-02-31')`
+  no falla, la pasa al 3 de marzo: asi se podian guardar turnos y vencimientos en fechas
+  inexistentes (encontrado por las pruebas).
+- **Excel**: el tramite 02 se busca antes que el 01; "certificado de dominio para
+  compraventa" caia como Certificaciones.
+- **Consultas publicas**: `/api/consulta` usa tambien `LIMITE_CHAT` por IP, para que
+  una sola persona no agote el cupo global de 15 por hora.
 - **Pendiente antes de presentarlo**: deploy y prueba en produccion, prueba del
   login de Ines, mail real del aviso de consulta, listas de documentos validadas
   por Ines, prueba en telefono real. El proyecto **no tiene tests automaticos**.

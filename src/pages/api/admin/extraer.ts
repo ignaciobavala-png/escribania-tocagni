@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
+import { modeloPara, opcionesDe, textoDe } from '../../../lib/modelo';
 import { bloqueFaqs, bloqueServicios } from '../../../data/agente';
 import { catalogoDocumentos, catalogoServicios, porReglas, validar, type Extraido } from '../../../lib/extraer';
 
@@ -20,6 +21,7 @@ ${catalogoServicios}
 - "resumen": una o dos frases claras en español rioplatense sobre qué necesita, sin repetir el teléfono ni el mail.
 - "respuesta": si el texto incluye una pregunta dirigida a vos (qué documentos hacen falta, cómo funciona un trámite, horarios, etc.), contestala en español rioplatense, breve y concreta, hablándole al personal del estudio (no al cliente: decí "el cliente" o "deberían pedirle"). Usá SOLO la información de abajo; si no está, decí que no lo sabés y que lo consulte con la escribana. Si el texto es solo el relato de un caso sin preguntas, devolvé null. Si es una pregunta general sin datos de un cliente, dejá nombre, contacto, servicio y resumen en null (aunque el tema coincida con un trámite).
   Cuando hables de documentos, aclará que es una lista orientativa que la escribana confirma en cada caso.
+  Si te piden HACER algo en el panel (agendar un turno, cargar un vencimiento, cambiar un estado), explicá que esta pantalla solo arma la ficha y que eso lo hace el Asistente (botón ✦ abajo a la derecha). No respondas como si hablaras con un cliente del sitio web.
 
 [SERVICIOS]
 ${bloqueServicios()}
@@ -53,20 +55,24 @@ export const POST: APIRoute = async ({ request }) => {
   let datos: Extraido;
   let via: 'ia' | 'reglas' = 'ia';
   try {
-    const r = (await Promise.race([
-      env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+    const modelo = modeloPara(request);
+    const r = await Promise.race([
+      env.AI.run(modelo as Parameters<typeof env.AI.run>[0], {
         messages: [
           { role: 'system', content: SISTEMA },
           { role: 'user', content: relato },
         ],
         response_format: { type: 'json_schema', json_schema: ESQUEMA },
-        max_tokens: 700,
+        max_tokens: 900,
         temperature: 0,
-      }),
+        ...opcionesDe(modelo),
+      } as never),
       new Promise((_, rechazar) => setTimeout(() => rechazar(new Error('tiempo agotado')), 20_000)),
-    ])) as { response?: unknown };
-    // Con json_schema la respuesta puede venir ya como objeto o como texto.
-    const bruto = typeof r.response === 'string' ? JSON.parse(r.response) : r.response;
+    ]);
+    const crudo = textoDe(r);
+    if (!crudo) throw new Error('respuesta vacía');
+    // Algunos modelos envuelven el JSON en ```json ... ```.
+    const bruto = JSON.parse(crudo.replace(/^```(?:json)?\s*|\s*```$/g, ''));
     datos = validar(bruto);
   } catch (e) {
     console.error('[extraer] falló el modelo, se usan reglas:', e);

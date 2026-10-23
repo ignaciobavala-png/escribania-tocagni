@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { auditar } from '../../../lib/auditoria';
+import { esFechaISO } from '../../../lib/fechas';
 
 export const prerender = false;
 
@@ -14,7 +15,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch {
     return Response.json({ error: 'Cuerpo inválido.' }, { status: 400 });
   }
-  if (typeof b.fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(b.fecha)) {
+  if (!esFechaISO(b.fecha)) {
     return Response.json({ error: 'Fecha inválida.' }, { status: 400 });
   }
   if (typeof b.hora !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(b.hora)) {

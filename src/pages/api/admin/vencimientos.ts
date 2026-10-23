@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { auditar } from '../../../lib/auditoria';
+import { esFechaISO } from '../../../lib/fechas';
 
 export const prerender = false;
 
@@ -16,7 +17,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
   const concepto = typeof b.concepto === 'string' ? b.concepto.trim().slice(0, 160) : '';
   if (!concepto) return Response.json({ error: 'Falta el concepto.' }, { status: 400 });
-  if (typeof b.vence !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(b.vence) || Number.isNaN(Date.parse(b.vence))) {
+  if (!esFechaISO(b.vence)) {
     return Response.json({ error: 'Fecha inválida.' }, { status: 400 });
   }
   const fichaId = typeof b.ficha_id === 'string' ? b.ficha_id : null;

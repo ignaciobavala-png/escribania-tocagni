@@ -6,7 +6,7 @@
 // instrucciones escondidas no puede mover nada solo. No hay acciones de borrado.
 
 import { auditar } from './auditoria';
-import { fechaCorta } from './fechas';
+import { esFechaISO, fechaCorta } from './fechas';
 import { ESTADOS, URGENCIAS, esEstado, esServicio, esUrgencia, nombreServicio, type Estado, type Urgencia } from './fichas';
 
 export type Accion =
@@ -24,7 +24,7 @@ export class ErrorAccion extends Error {}
 
 const txt = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
 const id = (v: unknown) => (typeof v === 'string' && /^[\w-]{8,64}$/.test(v) ? v : null);
-const fecha = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) ? v : null);
+const fecha = (v: unknown) => (esFechaISO(v) ? v : null);
 const hora = (v: unknown) => (typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : null);
 
 /** Normaliza lo que propuso el modelo. Lo que no entra en un tipo conocido se rechaza. */
@@ -89,10 +89,12 @@ export async function prever(db: D1Database, a: Accion): Promise<string> {
       return `Crear la consulta de ${a.nombre ?? 'una persona sin nombre'}${a.servicio ? ` (${nombreServicio(a.servicio)})` : ''}, urgencia ${URGENCIAS[a.urgencia].toLowerCase()}.`;
     case 'ficha_estado': {
       const f = await ficha(db, a.ficha_id);
+      if (f.estado === a.estado) throw new ErrorAccion(`La consulta de ${quien(f.nombre)} ya está «${ESTADOS[a.estado]}».`);
       return `Pasar la consulta de ${quien(f.nombre)} de «${ESTADOS[f.estado]}» a «${ESTADOS[a.estado]}».`;
     }
     case 'ficha_urgencia': {
       const f = await ficha(db, a.ficha_id);
+      if (f.urgencia === a.urgencia) throw new ErrorAccion(`La consulta de ${quien(f.nombre)} ya tiene urgencia ${URGENCIAS[a.urgencia].toLowerCase()}.`);
       return `Cambiar la urgencia de ${quien(f.nombre)} de ${URGENCIAS[f.urgencia].toLowerCase()} a ${URGENCIAS[a.urgencia].toLowerCase()}.`;
     }
     case 'ficha_servicio': {
@@ -114,6 +116,9 @@ export async function prever(db: D1Database, a: Accion): Promise<string> {
       return `Marcar como resuelto el vencimiento «${v.concepto}» (${fechaCorta(v.vence)}).`;
     }
     case 'turno_crear': {
+      if (new Date(`${a.fecha}T${a.hora}:00-03:00`).getTime() < Date.now()) {
+        throw new ErrorAccion('Esa fecha y hora ya pasaron: no se puede agendar un turno en el pasado.');
+      }
       const f = a.ficha_id ? await ficha(db, a.ficha_id) : null;
       return `Agendar un turno el ${fechaCorta(a.fecha)} a las ${a.hora}${f ? ` con ${quien(f.nombre)}` : ''}${a.motivo ? `: ${a.motivo}` : ''}.`;
     }

@@ -4,7 +4,7 @@
 // mismo D1 que usa el panel. El modelo corre en Workers AI: nada sale de Cloudflare.
 // Solo lectura: el asistente explica y sugiere, nunca modifica una ficha.
 
-import { CATEGORIAS, REQUERIDOS, categoriaPorClave } from '../data/expediente';
+import { REQUERIDOS, categoriaPorClave } from '../data/expediente';
 import { ESTADOS, nombreServicio } from './fichas';
 import { diasHasta, fechaCorta, hoyAR } from './fechas';
 
@@ -57,6 +57,16 @@ async function abiertas(db: D1Database): Promise<string> {
   return results
     .map((f) => `- /admin/fichas/${f.id} (id ${f.id}) · ${linea(f.nombre ?? 'Sin nombre', nombreServicio(f.servicio), `urgencia ${f.urgencia}`, ESTADOS[f.estado], `creada ${fechaCorta(f.creada.slice(0, 10))}`, f.resumen?.slice(0, 120))}`)
     .join('\n');
+}
+
+// Directorio corto de todas las consultas abiertas: con esto el asistente puede asociar
+// "agendá un turno con Carlos" a su ficha desde cualquier pantalla, no solo desde Inicio.
+async function directorio(db: D1Database): Promise<string> {
+  const { results } = await db
+    .prepare(`SELECT id, nombre, servicio, estado FROM fichas WHERE estado != 'cerrada' ORDER BY creada DESC LIMIT 80`)
+    .all<{ id: string; nombre: string | null; servicio: string | null; estado: keyof typeof ESTADOS }>();
+  if (!results.length) return 'No hay consultas abiertas.';
+  return results.map((f) => `- id ${f.id} · ${linea(f.nombre ?? 'Sin nombre', nombreServicio(f.servicio), ESTADOS[f.estado])}`).join('\n');
 }
 
 // Un expediente es la carpeta de documentos de una consulta: hay uno por ficha.
@@ -167,12 +177,13 @@ export async function contextoPara(db: D1Database, ruta: string): Promise<Contex
       datos = `Consultas abiertas (más urgentes primero):\n${f}\n\nVencimientos (próximos 30 días y vencidos):\n${v}\n\nTurnos de hoy y mañana:\n${t}`;
     }
   }
+  // Inicio y Consultas ya listan las consultas; el resto suma el directorio.
+  if (!['inicio', 'consultas'].includes(clave)) {
+    datos += `\n\nDirectorio de consultas abiertas (para identificar a quién se refiere la persona):\n${await directorio(db)}`;
+  }
   return { seccion: ROTULOS[clave], datos, sugerencias: SUGERENCIAS[clave] };
 }
 
 /** Solo las sugerencias, sin tocar la base: las usa el layout para pintar los atajos. */
 export const sugerenciasDe = (ruta: string) => SUGERENCIAS[seccionDe(ruta).clave];
 export const rotuloDe = (ruta: string) => ROTULOS[seccionDe(ruta).clave];
-
-// Para que el prompt conozca las categorías sin repetirlas a mano.
-export const nombresCategorias = CATEGORIAS.map((c) => c.titulo).join(', ');

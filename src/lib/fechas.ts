@@ -8,6 +8,15 @@ export function hoyAR(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
 }
 
+/** ¿Es una fecha YYYY-MM-DD que existe? `Date.parse('2026-02-31')` no falla: la pasa en
+ *  silencio al 3 de marzo, así que hay que comparar ida y vuelta. */
+export function esFechaISO(v: unknown): v is string {
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const [y, m, d] = v.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d));
+  return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+}
+
 /** Días desde hoy hasta una fecha YYYY-MM-DD (negativo = ya venció). */
 export function diasHasta(fecha: string): number {
   const [y, m, d] = fecha.split('-').map(Number);

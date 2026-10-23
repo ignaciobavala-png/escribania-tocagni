@@ -18,6 +18,13 @@ const limpiar = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().s
 const unaLinea = (s: string) => s.replace(/[\r\n]+/g, ' ');
 
 export const POST: APIRoute = async ({ request, url }) => {
+  // Tope por IP (el mismo binding que el chat): sin esto, una sola persona podía agotar
+  // el cupo global de la hora y dejar sin formulario a los clientes reales.
+  if (env.LIMITE_CHAT) {
+    const { success } = await env.LIMITE_CHAT.limit({ key: `consulta:${request.headers.get('cf-connecting-ip') ?? 'sin-ip'}` });
+    if (!success) return Response.json({ error: 'Enviaste varias consultas seguidas. Probá en un minuto o escribinos por WhatsApp.' }, { status: 429 });
+  }
+
   let b: Record<string, unknown>;
   try {
     b = await request.json();

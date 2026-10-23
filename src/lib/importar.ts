@@ -105,8 +105,10 @@ export function parseFecha(v: Celda): string | null {
 const PALABRAS_SERVICIO: [string, RegExp][] = [
   // El 09 va primero: "desarrollos inmobiliarios" también contiene "inmobil" (02).
   ['09', /desarrollo|emprendimiento|loteo/],
-  ['01', /certific|firma|apostill|legaliz/],
+  // El 02 antes que el 01: "certificado de dominio para compraventa" o "firma de escritura"
+  // son operaciones inmobiliarias, no certificaciones (el 01 es certificar firmas y copias).
   ['02', /inmobil|compraventa|compra|venta|escritura|hipotec|donacion|permuta|usufructo|propiedad horizontal/],
+  ['01', /certific|firma|apostill|legaliz/],
   ['03', /poder|autorizacion|viaje/],
   ['04', /societ|sociedad|estatuto|libros|rubrica|srl|\bsa\b|cuotas|acciones/],
   ['05', /sucesi|heredero|testamentaria|tracto/],
