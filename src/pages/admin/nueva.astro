@@ -22,7 +22,7 @@ const iaMarca = 'ia hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs font-me
   <header class="mb-6 rise">
     <h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-primary">Nueva consulta</h1>
     <p class="mt-2 text-lg text-neutral-600 max-w-2xl">
-      Contame el caso: hablá, escribí o soltá los archivos. Armo la ficha por vos y solo tenés que confirmarla.
+      Contame el caso: hablá, escribí o soltá los archivos. Armo la ficha por vos y solo tenés que confirmarla. También podés hacerme preguntas, como qué documentos pide un trámite.
     </p>
   </header>
 
@@ -36,6 +36,11 @@ const iaMarca = 'ia hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs font-me
         placeholder="Ej.: Marta Gómez, 11 5527 6746. Quiere vender un departamento en Belgrano, le falta el certificado de dominio y es urgente…"
         class="w-full resize-none bg-transparent text-xl leading-relaxed text-neutral-900 outline-none placeholder:text-neutral-400"
       ></textarea>
+
+      <div id="respuesta" role="status" aria-live="polite" class="hidden mt-4 rounded-2xl border border-accent/40 bg-accent/10 p-4">
+        <p class="text-sm font-medium text-accent-dark">✦ Asistente</p>
+        <p id="respuesta-texto" class="mt-1 whitespace-pre-line text-base leading-relaxed text-neutral-800"></p>
+      </div>
 
       <ul id="adjuntos" class="mt-2 flex flex-wrap gap-2" aria-label="Archivos adjuntos"></ul>
 
@@ -86,7 +91,7 @@ const iaMarca = 'ia hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs font-me
           <div class="mt-1.5 flex flex-wrap gap-2" role="group" aria-labelledby="l-tramite">
             {tramites.map((t) => (
               <button type="button" data-servicio={t.valor} aria-pressed="false"
-                class="rounded-full border border-neutral-300/80 bg-white/60 px-3.5 py-1.5 text-sm text-neutral-700 transition aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-white hover:bg-white aria-pressed:hover:bg-primary">
+                class="rounded-full border border-neutral-300/80 bg-white/60 px-3.5 py-2.5 text-sm text-neutral-700 transition aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-white hover:bg-white aria-pressed:hover:bg-primary">
                 <span class="opacity-60 tabular-nums">{t.valor}</span> {t.titulo}
               </button>
             ))}
@@ -163,6 +168,8 @@ const iaMarca = 'ia hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs font-me
   const nombre = $<HTMLInputElement>('#nombre');
   const contacto = $<HTMLInputElement>('#contacto');
   const resumen = $<HTMLTextAreaElement>('#resumen');
+  const cajaRespuesta = $('#respuesta');
+  const textoRespuesta = $('#respuesta-texto');
 
   type Campo = 'nombre' | 'contacto' | 'servicio' | 'urgencia' | 'resumen';
   let servicio = '';
@@ -207,12 +214,14 @@ const iaMarca = 'ia hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs font-me
   );
 
   // ---- El asistente interpreta el relato ----------------------------------
-  interface Datos { nombre: string | null; contacto: string | null; servicio: string | null; urgencia: string; resumen: string | null; via: 'ia' | 'reglas' }
+  interface Datos { nombre: string | null; contacto: string | null; servicio: string | null; urgencia: string; resumen: string | null; respuesta: string | null; via: 'ia' | 'reglas' }
   let pedido = 0;
   let ultimo = '';
   let espera: number | undefined;
 
   function aplicar(d: Datos) {
+    textoRespuesta.textContent = d.respuesta ?? '';
+    cajaRespuesta.classList.toggle('hidden', !d.respuesta);
     const poner = (c: Campo, el: HTMLInputElement | HTMLTextAreaElement, v: string | null) => {
       if (!v || tocado.has(c)) return;
       el.value = v; destello(el); marca(c).classList.remove('hidden');
@@ -238,7 +247,7 @@ const iaMarca = 'ia hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs font-me
       const d = (await res.json()) as Datos;
       if (mio !== pedido) return; // llegó una respuesta más nueva
       aplicar(d);
-      estado.textContent = d.via === 'ia' ? '✦ Listo, revisá la ficha' : 'Completé lo básico (el asistente no respondió)';
+      estado.textContent = d.via === 'ia' ? (d.respuesta ? '' : '✦ Listo, revisá la ficha') : 'Completé lo básico (el asistente no respondió, así que tampoco puedo contestar preguntas ahora)';
     } catch {
       if (mio === pedido) estado.textContent = 'No pude interpretar el texto. Completá la ficha a mano.';
     } finally {

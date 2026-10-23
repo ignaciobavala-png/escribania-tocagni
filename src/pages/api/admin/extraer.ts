@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
-import { catalogoServicios, porReglas, validar, type Extraido } from '../../../lib/extraer';
+import { bloqueFaqs, bloqueServicios } from '../../../data/agente';
+import { catalogoDocumentos, catalogoServicios, porReglas, validar, type Extraido } from '../../../lib/extraer';
 
 export const prerender = false;
 
@@ -16,7 +17,18 @@ Reglas:
 ${catalogoServicios}
   Ojo: pedir o necesitar un "certificado" (de dominio, de libre deuda, etc.) como parte de una compraventa NO es el servicio 01; el 01 es certificar firmas y copias. Vender, comprar o hipotecar un inmueble es el 02.
 - "urgencia": "alta" solo si el relato habla de urgencia, de un plazo cercano o de un vencimiento; "baja" si dice que no hay apuro; si no, "normal".
-- "resumen": una o dos frases claras en español rioplatense sobre qué necesita, sin repetir el teléfono ni el mail.`;
+- "resumen": una o dos frases claras en español rioplatense sobre qué necesita, sin repetir el teléfono ni el mail.
+- "respuesta": si el texto incluye una pregunta dirigida a vos (qué documentos hacen falta, cómo funciona un trámite, horarios, etc.), contestala en español rioplatense, breve y concreta, hablándole al personal del estudio (no al cliente: decí "el cliente" o "deberían pedirle"). Usá SOLO la información de abajo; si no está, decí que no lo sabés y que lo consulte con la escribana. Si el texto es solo el relato de un caso sin preguntas, devolvé null. Si es una pregunta general sin datos de un cliente, dejá nombre, contacto, servicio y resumen en null (aunque el tema coincida con un trámite).
+  Cuando hables de documentos, aclará que es una lista orientativa que la escribana confirma en cada caso.
+
+[SERVICIOS]
+${bloqueServicios()}
+
+[DOCUMENTOS QUE SUELEN HACER FALTA (orientativo, sin validar)]
+${catalogoDocumentos}
+
+[PREGUNTAS FRECUENTES (redactadas por la escribana)]
+${bloqueFaqs()}`;
 
 const ESQUEMA = {
   type: 'object',
@@ -26,8 +38,9 @@ const ESQUEMA = {
     servicio: { type: ['string', 'null'] },
     urgencia: { type: 'string', enum: ['baja', 'normal', 'alta'] },
     resumen: { type: ['string', 'null'] },
+    respuesta: { type: ['string', 'null'] },
   },
-  required: ['nombre', 'contacto', 'servicio', 'urgencia', 'resumen'],
+  required: ['nombre', 'contacto', 'servicio', 'urgencia', 'resumen', 'respuesta'],
 };
 
 export const POST: APIRoute = async ({ request }) => {
@@ -47,7 +60,7 @@ export const POST: APIRoute = async ({ request }) => {
           { role: 'user', content: relato },
         ],
         response_format: { type: 'json_schema', json_schema: ESQUEMA },
-        max_tokens: 400,
+        max_tokens: 700,
         temperature: 0,
       }),
       new Promise((_, rechazar) => setTimeout(() => rechazar(new Error('tiempo agotado')), 20_000)),

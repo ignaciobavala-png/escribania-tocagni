@@ -142,14 +142,16 @@ const stats = [
             {prioridad && (
               <a href={`/admin/fichas/${prioridad.id}`} class="chip">
                 <span class="text-accent-dark" aria-hidden="true">✦</span>
-                Empezá por <strong class="font-semibold">{prioridad.nombre ?? 'la consulta nueva'}</strong>
-                {prioridad.urgencia === 'alta' && <span class="text-red-700">· urgente</span>}
+                <span>
+                  Empezá por <strong class="font-semibold">{prioridad.nombre ?? 'la consulta nueva'}</strong>
+                  {prioridad.urgencia === 'alta' && <span class="text-red-700">· urgente</span>}
+                </span>
               </a>
             )}
             {venceYa && (
               <a href={venceYa.ficha_id ? `/admin/fichas/${venceYa.ficha_id}` : '#'} class="chip">
                 <span class="w-2 h-2 rounded-full bg-red-600" aria-hidden="true"></span>
-                {venceYa.concepto} · <span class="text-red-700 font-medium">{semaforo(venceYa.vence).texto}</span>
+                <span>{venceYa.concepto} · <span class="text-red-700 font-medium">{semaforo(venceYa.vence).texto}</span></span>
               </a>
             )}
           </div>
@@ -368,7 +370,7 @@ const stats = [
     }
 
     .chip {
-      display: inline-flex; align-items: center; gap: 0.5rem;
+      display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem;
       border-radius: 9999px;
       padding: 0.5rem 1rem;
       font-size: 1rem;

@@ -1,0 +1,319 @@
+---
+// El asistente "vive" en todo el panel: un botón siempre a mano y un cajón de
+// conversación que sabe en qué pantalla estás (el servidor lee los datos de
+// esa pantalla; ver lib/contexto-asistente.ts). Solo lectura.
+import { rotuloDe, sugerenciasDe } from '../lib/contexto-asistente';
+
+const ruta = Astro.url.pathname.replace(/\/$/, '') || '/admin';
+const sugerencias = sugerenciasDe(ruta);
+const seccion = rotuloDe(ruta);
+---
+
+<div id="asistente" data-ruta={ruta} data-sugerencias={JSON.stringify(sugerencias)} data-seccion={seccion}>
+  {/* Botón flotante: en el teléfono queda arriba de la barra de navegación. */}
+  <button
+    type="button"
+    id="as-abrir"
+    aria-haspopup="dialog"
+    aria-controls="as-panel"
+    aria-label="Asistente"
+    class="fixed z-40 right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-6 lg:right-6 inline-flex h-12 w-12 lg:h-auto lg:w-auto items-center justify-center gap-2.5 rounded-full bg-primary lg:pl-4 lg:pr-5 lg:py-3 text-base font-medium text-white shadow-xl shadow-primary/30 transition hover:bg-primary-light"
+  >
+    <span class="text-xl leading-none text-accent lg:hidden" aria-hidden="true">✦</span>
+    <span class="as-punto hidden lg:block" aria-hidden="true"></span>
+    <span class="hidden lg:inline">Asistente</span>
+    <kbd class="hidden lg:inline rounded bg-white/15 px-1.5 py-0.5 text-xs font-sans text-white/80">Ctrl K</kbd>
+  </button>
+
+  {/* Globo de bienvenida: aparece una vez por pantalla y se va solo. */}
+  <p id="as-globo" class="hidden fixed z-40 right-4 bottom-[calc(8rem+env(safe-area-inset-bottom))] lg:bottom-24 lg:right-6 max-w-56 lg:max-w-64 rounded-2xl rounded-br-md bg-white px-4 py-3 text-base text-neutral-800 shadow-xl ring-1 ring-black/5"></p>
+
+  <section
+    id="as-panel"
+    role="dialog"
+    aria-label="Asistente"
+    hidden
+    class="fixed z-50 inset-x-0 bottom-0 h-[85dvh] lg:inset-x-auto lg:right-6 lg:bottom-6 lg:h-[min(40rem,82vh)] lg:w-[26rem] flex flex-col overflow-hidden rounded-t-3xl lg:rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl"
+  >
+    <header class="flex items-center gap-3 bg-primary px-5 py-4 text-white">
+      <span class="as-punto" aria-hidden="true"></span>
+      <div class="min-w-0 flex-1">
+        <p class="text-base font-semibold leading-tight">Asistente</p>
+        <p class="truncate text-sm text-white/70">Mirando: {seccion}</p>
+      </div>
+      <button type="button" id="as-limpiar" class="rounded-lg px-2 py-1 text-sm text-white/70 hover:bg-white/10 hover:text-white">Nueva charla</button>
+      <button type="button" id="as-cerrar" aria-label="Cerrar" class="rounded-lg px-2 py-1 text-2xl leading-none text-white/80 hover:bg-white/10 hover:text-white">×</button>
+    </header>
+
+    <div id="as-mensajes" class="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite"></div>
+
+    <div id="as-sugeridas" class="flex flex-wrap gap-2 px-4 pb-2"></div>
+
+    <form id="as-form" class="flex items-end gap-2 border-t border-neutral-200 bg-white/80 p-3">
+      <textarea
+        id="as-texto"
+        rows="1"
+        maxlength="2000"
+        placeholder="Preguntame lo que necesites…"
+        class="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-neutral-300 bg-white px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-accent/50"
+      ></textarea>
+      <button type="submit" id="as-enviar" class="h-11 rounded-2xl bg-primary px-4 text-base font-semibold text-white transition hover:bg-primary-light disabled:opacity-40">Enviar</button>
+    </form>
+  </section>
+
+  <style is:global>
+    .as-punto { position: relative; flex: none; width: 0.55rem; height: 0.55rem; border-radius: 9999px; background: #c7a76a; }
+    .as-punto::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: inherit; animation: as-onda 2.4s ease-out infinite; }
+    @keyframes as-onda { to { transform: scale(3.4); opacity: 0; } }
+    #as-globo[data-visible='true'] { display: block; animation: as-entra 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+    @keyframes as-entra { from { opacity: 0; transform: translateY(8px); } }
+    .as-cursor::after { content: '▍'; margin-left: 1px; color: #b8944c; animation: as-parpadeo 1s steps(2) infinite; }
+    @keyframes as-parpadeo { 50% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .as-punto::after, #as-globo[data-visible='true'], .as-cursor::after { animation: none; }
+    }
+  </style>
+</div>
+
+<script>
+  interface Msg { role: 'user' | 'assistant'; content: string }
+
+  const raiz = document.getElementById('asistente')!;
+  const ruta = raiz.dataset.ruta!;
+  const seccion = raiz.dataset.seccion!;
+  const sugerencias: string[] = JSON.parse(raiz.dataset.sugerencias ?? '[]');
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const panel = $('as-panel');
+  const abrir = $<HTMLButtonElement>('as-abrir');
+  const globo = $('as-globo');
+  const lista = $('as-mensajes');
+  const sugeridas = $('as-sugeridas');
+  const form = $<HTMLFormElement>('as-form');
+  const texto = $<HTMLTextAreaElement>('as-texto');
+  const enviar = $<HTMLButtonElement>('as-enviar');
+
+  // La charla sigue de una pantalla a otra mientras la pestaña esté abierta.
+  const CLAVE = 'as-charla';
+  let historial: Msg[] = [];
+  try { historial = JSON.parse(sessionStorage.getItem(CLAVE) ?? '[]'); } catch { /* sin almacenamiento */ }
+  const guardar = () => { try { sessionStorage.setItem(CLAVE, JSON.stringify(historial.slice(-20))); } catch { /* ídem */ } };
+
+  // Rutas de consultas en la respuesta -> enlaces; el resto, texto plano (nada de HTML del modelo).
+  function pintarTexto(el: HTMLElement, t: string) {
+    el.replaceChildren();
+    const re = /\/admin\/(?:fichas|expedientes)\/[\w-]+/g;
+    let i = 0;
+    for (const m of t.matchAll(re)) {
+      el.append(t.slice(i, m.index));
+      const a = document.createElement('a');
+      a.href = m[0];
+      a.textContent = m[0].includes('expedientes') ? 'abrir expediente →' : 'abrir consulta →';
+      a.className = 'font-medium text-primary underline';
+      el.append(a);
+      i = m.index! + m[0].length;
+    }
+    el.append(t.slice(i));
+  }
+
+  // El modelo cierra con líneas `ACCION: {json}`: no se muestran, se vuelven tarjetas para confirmar.
+  const MARCA = 'ACCION:';
+  const visible = (t: string) => { const i = t.indexOf(MARCA); return (i < 0 ? t : t.slice(0, i)).trimEnd(); };
+  function acciones(t: string): unknown[] {
+    const out: unknown[] = [];
+    for (const l of t.split('\n')) {
+      const i = l.indexOf(MARCA);
+      if (i < 0) continue;
+      const crudo = l.slice(i + MARCA.length).trim();
+      try { out.push(JSON.parse(crudo)); continue; } catch { /* se intenta reparar */ }
+      // Error típico del modelo: la comilla de la clave mal puesta ("ficha_id:abc" en vez de "ficha_id":"abc").
+      try { out.push(JSON.parse(crudo.replace(/"(\w+_id):\s*([^"]*)"/g, '"$1":"$2"'))); } catch { /* sin arreglo: se ignora */ }
+    }
+    return out.slice(0, 3);
+  }
+
+  // Al terminar una acción se recarga la pantalla para que muestre el cambio;
+  // el cajón se vuelve a abrir solo. En pantallas donde hay algo a medio escribir no se recarga.
+  const SIN_RECARGA = ['/admin/nueva', '/admin/excel'];
+  const nota = (texto: string) => {
+    const ultimo = historial[historial.length - 1];
+    if (ultimo?.role === 'assistant') ultimo.content += `\n(${texto})`;
+    guardar();
+  };
+
+  async function pedirAccion(accion: unknown, ejecutar: boolean) {
+    const res = await fetch('/api/admin/asistente-accion', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accion, ejecutar }) });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error ?? 'No se pudo.');
+    return d as { accion: unknown; descripcion?: string; id?: string };
+  }
+
+  async function tarjeta(cruda: unknown) {
+    let prev: { accion: unknown; descripcion?: string };
+    try { prev = await pedirAccion(cruda, false); } catch { return; } // propuesta inválida: no se muestra
+    const caja = document.createElement('div');
+    caja.className = 'mr-8 rounded-2xl border border-accent/50 bg-accent/10 p-3.5';
+    const t = document.createElement('p');
+    t.className = 'text-base text-neutral-900';
+    t.textContent = prev.descripcion ?? '';
+    const pie = document.createElement('div');
+    pie.className = 'mt-3 flex items-center gap-2';
+    const si = document.createElement('button');
+    si.type = 'button';
+    si.textContent = 'Confirmar';
+    si.className = 'rounded-xl bg-primary px-4 py-2 text-base font-semibold text-white hover:bg-primary-light disabled:opacity-50';
+    const no = document.createElement('button');
+    no.type = 'button';
+    no.textContent = 'Descartar';
+    no.className = 'rounded-xl px-3 py-2 text-base text-neutral-600 hover:bg-white/70';
+    const aviso = document.createElement('span');
+    aviso.className = 'text-base';
+    pie.append(si, no, aviso);
+    caja.append(t, pie);
+    lista.append(caja);
+    lista.scrollTop = lista.scrollHeight;
+
+    no.addEventListener('click', () => { caja.remove(); nota(`Descartaste: ${prev.descripcion}`); });
+    si.addEventListener('click', async () => {
+      si.disabled = no.disabled = true;
+      aviso.textContent = 'Haciéndolo…';
+      try {
+        const r = await pedirAccion(prev.accion, true);
+        pie.replaceChildren(Object.assign(document.createElement('span'), { className: 'text-base font-medium text-emerald-800', textContent: '✓ Hecho' }));
+        if (r.id && (prev.accion as { tipo: string }).tipo === 'ficha_crear') {
+          const a = document.createElement('a');
+          a.href = `/admin/fichas/${r.id}`; a.textContent = 'abrir consulta →'; a.className = 'ml-3 text-base font-medium text-primary underline';
+          pie.append(a);
+        } else if (!SIN_RECARGA.includes(ruta)) {
+          try { sessionStorage.setItem('as-abierto', '1'); } catch { /* sin almacenamiento */ }
+          setTimeout(() => location.reload(), 900);
+        }
+        nota(`Confirmaste y se hizo: ${prev.descripcion}`);
+      } catch (e) {
+        si.disabled = no.disabled = false;
+        aviso.textContent = e instanceof Error ? e.message : 'No se pudo.';
+        aviso.className = 'text-base text-red-700';
+      }
+    });
+  }
+
+  function burbuja(role: Msg['role'], t: string) {
+    const el = document.createElement('div');
+    el.className = role === 'user'
+      ? 'ml-10 self-end rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-base text-white whitespace-pre-wrap'
+      : 'mr-8 rounded-2xl rounded-bl-md bg-neutral-100 px-4 py-2.5 text-base text-neutral-800 whitespace-pre-wrap';
+    if (role === 'user') el.textContent = t; else pintarTexto(el, t);
+    lista.append(el);
+    lista.scrollTop = lista.scrollHeight;
+    return el;
+  }
+
+  function saludo() {
+    const el = burbuja('assistant', `Hola, soy tu asistente. Estoy mirando ${seccion.toLowerCase()} con vos. Preguntame lo que necesites o pedime que haga algo (cambiar un estado, cargar un vencimiento, agendar un turno): siempre te pido confirmación antes.`);
+    el.dataset.saludo = '1';
+  }
+
+  function render() {
+    lista.replaceChildren();
+    sugeridas.replaceChildren(...sugerencias.map((s) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = s;
+      b.className = 'rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 transition hover:border-primary hover:text-primary';
+      b.addEventListener('click', () => preguntar(s));
+      return b;
+    }));
+    if (!historial.length) saludo();
+    for (const m of historial) burbuja(m.role, m.content);
+  }
+
+  let ocupado = false;
+  async function preguntar(pregunta: string) {
+    const p = pregunta.trim();
+    if (!p || ocupado) return;
+    ocupado = true;
+    enviar.disabled = true;
+    texto.value = '';
+    texto.style.height = '';
+    lista.querySelector('[data-saludo]')?.remove();
+    historial.push({ role: 'user', content: p });
+    burbuja('user', p);
+    const el = burbuja('assistant', '');
+    el.classList.add('as-cursor');
+    let acumulado = '';
+    try {
+      const res = await fetch('/api/admin/asistente', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ mensajes: historial.slice(-12), ruta }),
+      });
+      if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).error);
+      const lector = res.body.getReader();
+      const dec = new TextDecoder();
+      for (;;) {
+        const { done, value } = await lector.read();
+        if (done) break;
+        acumulado += dec.decode(value, { stream: true });
+        pintarTexto(el, visible(acumulado));
+        lista.scrollTop = lista.scrollHeight;
+      }
+      if (!acumulado.trim()) throw new Error();
+      const limpio = visible(acumulado);
+      historial.push({ role: 'assistant', content: limpio || acumulado });
+      if (!limpio) el.remove();
+      for (const a of acciones(acumulado)) await tarjeta(a);
+    } catch (e) {
+      historial.pop(); // la pregunta sin respuesta no queda en el historial
+      el.textContent = e instanceof Error && e.message ? e.message : 'No pude responder ahora. Probá de nuevo en un momento.';
+      el.classList.add('text-red-700');
+    } finally {
+      el.classList.remove('as-cursor');
+      guardar();
+      ocupado = false;
+      enviar.disabled = false;
+      texto.focus();
+    }
+  }
+
+  function mostrar(si: boolean) {
+    panel.hidden = !si;
+    abrir.setAttribute('aria-expanded', String(si));
+    globo.removeAttribute('data-visible');
+    if (si) { render(); texto.focus(); }
+  }
+
+  abrir.addEventListener('click', () => mostrar(panel.hidden));
+  $('as-cerrar').addEventListener('click', () => { mostrar(false); abrir.focus(); });
+  $('as-limpiar').addEventListener('click', () => { historial = []; guardar(); render(); });
+  form.addEventListener('submit', (e) => { e.preventDefault(); preguntar(texto.value); });
+  texto.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+  });
+  texto.addEventListener('input', () => { texto.style.height = 'auto'; texto.style.height = `${texto.scrollHeight}px`; });
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); mostrar(panel.hidden); }
+    else if (e.key === 'Escape' && !panel.hidden) mostrar(false);
+  });
+
+  try {
+    if (sessionStorage.getItem('as-abierto')) { sessionStorage.removeItem('as-abierto'); mostrar(true); }
+  } catch { /* sin almacenamiento */ }
+
+  // Un saludo breve, una sola vez por pestaña y pantalla, sin tapar el trabajo.
+  const GLOBOS: Record<string, string> = {
+    '/admin': 'Puedo resumirte el día y decirte qué es urgente.',
+    '/admin/nueva': 'Contame el caso o preguntame qué documentos pide un trámite.',
+    '/admin/vencimientos': '¿Querés que te diga cuál vence primero?',
+    '/admin/turnos': 'Puedo repasar los turnos de la semana.',
+  };
+  const globoTexto = ruta.startsWith('/admin/fichas/') ? 'Puedo resumirte este caso y decirte qué falta.'
+    : ruta.startsWith('/admin/expedientes/') ? '¿Querés saber qué documentos faltan en este expediente?'
+    : GLOBOS[ruta];
+  globo.addEventListener('click', () => globo.removeAttribute('data-visible'));
+  let visto = false;
+  try { visto = !!sessionStorage.getItem(`as-globo:${ruta}`); sessionStorage.setItem(`as-globo:${ruta}`, '1'); } catch { /* sin almacenamiento */ }
+  if (globoTexto && !visto) {
+    globo.textContent = globoTexto;
+    setTimeout(() => { if (panel.hidden) globo.setAttribute('data-visible', 'true'); }, 1800);
+    setTimeout(() => globo.removeAttribute('data-visible'), 6000);
+  }
+</script>

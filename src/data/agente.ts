@@ -29,7 +29,7 @@ export const preguntasSugeridas = [
   '¿Pueden ir a firmar a un domicilio?',
 ];
 
-function bloqueServicios(): string {
+export function bloqueServicios(): string {
   const items = [...servicios, desarrollo].map(
     (s) => `${s.number}. ${s.title}: ${s.description}`,
   );
@@ -37,7 +37,7 @@ function bloqueServicios(): string {
   return `${items.join('\n')}\n\nDesarrollos inmobiliarios - etapas:\n${etapas}`;
 }
 
-function bloqueFaqs(): string {
+export function bloqueFaqs(): string {
   return faqs
     .map((f) => `${f.number}. ${f.question}\n${f.answer}`)
     .join('\n\n');

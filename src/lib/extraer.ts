@@ -5,6 +5,7 @@
 
 import { servicios, desarrollo } from '../data/servicios';
 import { esServicio, esUrgencia, type Urgencia } from './fichas';
+import { REQUERIDOS, categoriaPorClave } from '../data/expediente';
 
 export interface Extraido {
   nombre: string | null;
@@ -12,6 +13,8 @@ export interface Extraido {
   servicio: string | null;
   urgencia: Urgencia;
   resumen: string | null;
+  /** Respuesta a una pregunta hecha al asistente; null si el texto es solo un caso. */
+  respuesta: string | null;
 }
 
 const texto = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
@@ -25,6 +28,7 @@ export function validar(raw: unknown): Extraido {
     servicio: esServicio(o.servicio) ? o.servicio : null,
     urgencia: esUrgencia(o.urgencia) ? o.urgencia : 'normal',
     resumen: texto(o.resumen, 600),
+    respuesta: texto(o.respuesta, 1500),
   };
 }
 
@@ -58,5 +62,16 @@ export function porReglas(relato: string): Extraido {
   const servicio = PALABRAS.find(([re]) => re.test(plano))?.[1] ?? null;
   const urgencia: Urgencia = /urgente|urgencia|cuanto antes|lo antes posible|para hoy|para manana|vence/.test(plano) ? 'alta' : 'normal';
   const resumen = t.slice(0, 600) || null;
-  return { nombre, contacto, servicio, urgencia, resumen };
+  return { nombre, contacto, servicio, urgencia, resumen, respuesta: null };
 }
+
+/** Documentos que suelen hacer falta por trámite (borrador sin validar por la escribana). */
+export const catalogoDocumentos = [...servicios, desarrollo]
+  .map((s) => {
+    const docs = (REQUERIDOS[s.number] ?? []).map((k) => {
+      const c = categoriaPorClave(k);
+      return `${c.titulo} (${c.ayuda})`;
+    });
+    return `${s.number} ${s.title}: ${docs.join('; ') || 'sin lista definida'}`;
+  })
+  .join('\n');

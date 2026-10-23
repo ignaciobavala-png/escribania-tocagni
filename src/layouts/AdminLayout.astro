@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import '../styles/panel.css';
+import Asistente from '../components/Asistente.astro';
 
 interface Props {
   title: string;
@@ -27,7 +28,7 @@ const nav = [
   { href: '/admin/expedientes', texto: 'Expedientes', icono: iconos.expedientes, movil: true },
   { href: '/admin/turnos', texto: 'Turnos', icono: iconos.turnos, movil: true },
   { href: '/admin/vencimientos', texto: 'Vencimientos', icono: iconos.vencimientos, movil: true },
-  { href: '/admin/nueva', texto: 'Nueva consulta', icono: iconos.nueva, movil: true },
+  { href: '/admin/nueva', texto: 'Nueva consulta', corto: 'Nueva', icono: iconos.nueva, movil: true },
   { href: '/admin/excel', texto: 'Excel', icono: iconos.excel, movil: false },
 ];
 const navMovil = nav.filter((n) => n.movil);
@@ -97,8 +98,8 @@ const activa = (href: string) =>
     {/* Teléfono: barra superior mínima. */}
     <header class="lg:hidden bg-primary text-white pt-[env(safe-area-inset-top)]">
       <div class="px-5 py-3 flex items-center justify-between">
-        <a href="/admin" class="text-lg font-semibold tracking-tight">Tocagni</a>
-        <a href="/cdn-cgi/access/logout" class="text-base text-white/70 py-2">Salir</a>
+        <a href="/admin" class="-ml-2 px-2 py-3 text-lg font-semibold tracking-tight">Tocagni</a>
+        <a href="/cdn-cgi/access/logout" class="-mr-3 px-3 py-3 text-base text-white/70">Salir</a>
       </div>
     </header>
 
@@ -115,13 +116,14 @@ const activa = (href: string) =>
         <a
           href={n.href}
           aria-current={activa(n.href) ? 'page' : undefined}
-          class={`flex flex-col items-center gap-1 py-2.5 text-[0.72rem] font-medium ${activa(n.href) ? 'text-primary' : 'text-neutral-500'}`}
+          class={`flex min-h-14 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[0.66rem] font-medium leading-none ${activa(n.href) ? 'text-primary' : 'text-neutral-500'}`}
         >
           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={n.icono} />
-          {n.texto}
+          {n.corto ?? n.texto}
         </a>
       ))}
     </nav>
+    <Asistente />
     <script is:inline>
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('/admin/sw.js', { scope: '/admin/' }).catch(() => {});
     </script>
