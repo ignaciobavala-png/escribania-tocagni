@@ -564,8 +564,15 @@ publico sigue estatico; `/admin/*` y `/api/admin/*` son on-demand y pasan por
     auditoria con `via: asistente`.
   - Si se agrega un tipo de accion hay que tocar tres lugares: el tipo y `validar`/
     `prever`/`ejecutar` en `lib/acciones.ts` y la lista del prompt en `asistente.ts`.
-  - El modelo a veces escribe mal el JSON (`"ficha_id:abc"`); el cliente repara solo
-    ese caso (claves `*_id`). Si no se puede, la tarjeta no aparece.
+  - Formato de las propuestas: `ACCION: tipo=turno_crear; fecha=...; hora=...` (clave=valor).
+    Se paso de JSON a esto porque el modelo escribia mal las comillas y las tarjetas
+    se perdian; el cliente igual acepta JSON si llega.
+  - **Fechas inventadas**: en `turno_crear` y `vencimiento_crear` el modelo debe mandar
+    `cita`, la frase exacta de la persona que dice la fecha/hora. `asistente-accion.ts`
+    la busca en lo que la persona escribio (`dichos`) y si no esta descarta la
+    propuesta. Antes el asistente preguntaba "¿que fecha?" y a la vez proponia un
+    turno inventado (visto en produccion el 2026-10-23).
+  - **Voz**: el cajon tiene microfono (graba, `/api/admin/dictar`, y envia solo).
   - En **Nueva consulta** el mismo `extraer.ts` ademas contesta preguntas
     (`respuesta`) con servicios, FAQ y la lista de documentos de `expediente.ts`.
   - Las listas de documentos por trámite siguen siendo un **borrador sin validar con

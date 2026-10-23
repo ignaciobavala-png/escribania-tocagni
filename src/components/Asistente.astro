@@ -50,6 +50,9 @@ const seccion = rotuloDe(ruta);
     <div id="as-sugeridas" class="flex flex-wrap gap-2 px-4 pb-2"></div>
 
     <form id="as-form" class="flex items-end gap-2 border-t border-neutral-200 bg-white/80 p-3">
+      <button type="button" id="as-mic" aria-pressed="false" aria-label="Hablarle al asistente" class="grid h-11 w-11 flex-none place-items-center rounded-2xl border border-neutral-300 bg-white text-primary transition hover:bg-neutral-100 aria-pressed:border-red-700 aria-pressed:bg-red-700 aria-pressed:text-white disabled:opacity-50">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      </button>
       <textarea
         id="as-texto"
         rows="1"
@@ -124,9 +127,16 @@ const seccion = rotuloDe(ruta);
       const i = l.indexOf(MARCA);
       if (i < 0) continue;
       const crudo = l.slice(i + MARCA.length).trim();
-      try { out.push(JSON.parse(crudo)); continue; } catch { /* se intenta reparar */ }
-      // Error típico del modelo: la comilla de la clave mal puesta ("ficha_id:abc" en vez de "ficha_id":"abc").
-      try { out.push(JSON.parse(crudo.replace(/"(\w+_id):\s*([^"]*)"/g, '"$1":"$2"'))); } catch { /* sin arreglo: se ignora */ }
+      // Formato `clave=valor; clave=valor`. Si el modelo mandó JSON igual, también se acepta.
+      if (crudo.startsWith('{')) { try { out.push(JSON.parse(crudo)); } catch { /* mal formado: se ignora */ } continue; }
+      const campos: Record<string, string | null> = {};
+      for (const par of crudo.split(';')) {
+        const k = par.indexOf('=');
+        if (k < 1) continue;
+        const v = par.slice(k + 1).trim().replace(/^["']|["']$/g, '');
+        campos[par.slice(0, k).trim()] = v === '' || v === 'null' ? null : v;
+      }
+      if (campos.tipo) out.push(campos);
     }
     return out.slice(0, 3);
   }
@@ -141,7 +151,7 @@ const seccion = rotuloDe(ruta);
   };
 
   async function pedirAccion(accion: unknown, ejecutar: boolean) {
-    const res = await fetch('/api/admin/asistente-accion', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accion, ejecutar }) });
+    const res = await fetch('/api/admin/asistente-accion', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accion, ejecutar, dichos: historial.filter((m) => m.role === 'user').slice(-4).map((m) => m.content) }) });
     const d = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(d.error ?? 'No se pudo.');
     return d as { accion: unknown; descripcion?: string; id?: string };
@@ -273,6 +283,54 @@ const seccion = rotuloDe(ruta);
       texto.focus();
     }
   }
+
+  // ---- Voz: se habla, se transcribe (Workers AI) y se envía como cualquier pregunta ----
+  const mic = $<HTMLButtonElement>('as-mic');
+  const MAX_SEG = 60;
+  let grabador: MediaRecorder | null = null;
+  mic.addEventListener('click', async () => {
+    if (grabador?.state === 'recording') { grabador.stop(); return; }
+    if (ocupado) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      texto.placeholder = 'Este navegador no permite grabar. Escribí tu pregunta.';
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const trozos: Blob[] = [];
+      const rec = (grabador = new MediaRecorder(stream));
+      let corte: number | undefined;
+      rec.ondataavailable = (e) => e.data.size && trozos.push(e.data);
+      rec.onstop = async () => {
+        clearTimeout(corte);
+        stream.getTracks().forEach((t) => t.stop());
+        mic.setAttribute('aria-pressed', 'false');
+        texto.placeholder = 'Preguntame lo que necesites…';
+        navigator.vibrate?.(30);
+        mic.disabled = true;
+        texto.placeholder = 'Transcribiendo…';
+        try {
+          const res = await fetch('/api/admin/dictar', { method: 'POST', body: new Blob(trozos, { type: rec.mimeType || 'audio/webm' }) });
+          const d = await res.json();
+          if (!res.ok) throw new Error(d.error);
+          if (d.texto) { texto.value = d.texto; preguntar(d.texto); }
+          else texto.placeholder = 'No se escuchó nada. Probá de nuevo.';
+        } catch (e) {
+          texto.placeholder = e instanceof Error && e.message ? e.message : 'No se pudo transcribir.';
+        } finally {
+          mic.disabled = false;
+          if (texto.placeholder === 'Transcribiendo…') texto.placeholder = 'Preguntame lo que necesites…';
+        }
+      };
+      rec.start();
+      navigator.vibrate?.(30);
+      mic.setAttribute('aria-pressed', 'true');
+      texto.placeholder = 'Escuchando… tocá el micrófono para terminar';
+      corte = window.setTimeout(() => rec.state === 'recording' && rec.stop(), MAX_SEG * 1000);
+    } catch {
+      texto.placeholder = 'No hay permiso para el micrófono. Habilitalo en el navegador.';
+    }
+  });
 
   function mostrar(si: boolean) {
     panel.hidden = !si;
